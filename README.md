@@ -16,6 +16,45 @@
 - **Рейтинги**: Рейтинг студентов в группе и общий рейтинг групп.
 - **Расписание**: Отображение расписания на день и на неделю.
 
+## Архитектура проекта
+
+```mermaid
+graph TD
+    User([Пользователь]) -->|Браузер| Presentation[Презентационный уровень (Blazor Server)]
+    
+    subgraph "Страницы Blazor"
+        Home[Главная / Редирект]
+        StudentDash[Дашборд Студента]
+        TeacherDash[Дашборд Преподавателя]
+        AdminDash[Дашборд Админа]
+    end
+    
+    Presentation -->|"SignalR (Интерактивность)"| "Страницы Blazor"
+    
+    subgraph "Сервисы"
+        AnalyticsSvc[AnalyticsService]
+        GradeSvc[GradeService]
+        ScheduleSvc[ScheduleService]
+    end
+    
+    "Страницы Blazor" --> Сервисы
+    
+    subgraph "Доступ к данным"
+        DBContext[ApplicationDbContext]
+        Identity[ASP.NET Core Identity]
+    end
+    
+    Сервисы --> DBContext
+    "Страницы Blazor" --> Identity
+    
+    subgraph "База данных"
+        SQLite[(SQLite DB)]
+    end
+    
+    DBContext --> SQLite
+    Identity --> SQLite
+```
+
 ## Тестовые пользователи
 
 | Роль | Email | Пароль |
