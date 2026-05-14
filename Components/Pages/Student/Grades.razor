@@ -1,4 +1,5 @@
 @page "/student-grades"
+@rendermode InteractiveServer
 @using AcademicPerformanceDashboard.Services
 @using AcademicPerformanceDashboard.Models
 @using AcademicPerformanceDashboard.Data
@@ -12,8 +13,11 @@
 
 <PageTitle>Мои Оценки</PageTitle>
 
-<div class="container-fluid">
-    <h2 class="mb-4">Мои Оценки</h2>
+<div class="dashboard-container">
+    <div class="dashboard-header" style="text-align: left; margin-bottom: 2rem;">
+        <h1 class="dashboard-title">Мои Оценки</h1>
+        <p class="dashboard-subtitle">История ваших оценок и фильтрация по предметам.</p>
+    </div>
 
     @if (isLoading)
     {
@@ -21,34 +25,37 @@
     }
     else if (!isStudent)
     {
-        <RadzenAlert AlertStyle="AlertStyle.Warning" Text="Доступно только студентам." />
+        <div class="dashboard-card">
+            <p style="color: #ff5252;">Доступно только студентам.</p>
+        </div>
     }
     else
     {
-        <RadzenCard class="rz-card mb-4">
+        <div class="dashboard-card" style="margin-bottom: 20px;">
             <div class="row g-3">
                 <div class="col-md-4">
                     <RadzenDropDown AllowClear="true" TValue="int?" Class="w-100" 
                                     Data="@subjects" TextProperty="Name" ValueProperty="Id"
-                                    Placeholder="Все предметы" Change="@(args => OnSubjectChanged(args))" />
+                                    Placeholder="Все предметы" Change="@(args => OnSubjectChanged(args))"
+                                    style="background: #111625 !important; border: 1px solid #2a3149 !important; color: #fff !important;" />
                 </div>
             </div>
-        </RadzenCard>
+        </div>
 
-        <RadzenCard class="rz-card">
+        <div class="dashboard-card">
             <RadzenDataGrid Data="@grades" TItem="Grade" AllowPaging="true" PageSize="10" AllowSorting="true" class="bg-transparent text-light">
                 <Columns>
                     <RadzenDataGridColumn TItem="Grade" Property="Subject.Name" Title="Предмет" Sortable="true" />
                     <RadzenDataGridColumn TItem="Grade" Property="Value" Title="Оценка" Sortable="true">
                         <Template Context="grade">
-                            <RadzenBadge BadgeStyle="@GetBadgeStyle(grade.Value)" Text="@grade.Value.ToString()" />
+                            <span class="@(grade.Value >= 60 ? "positive" : "negative")" style="font-weight: 600;">@grade.Value</span>
                         </Template>
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="Grade" Property="Date" Title="Дата" FormatString="{0:d}" Sortable="true" />
                     <RadzenDataGridColumn TItem="Grade" Property="Teacher.FullName" Title="Преподаватель" Sortable="true" />
                 </Columns>
             </RadzenDataGrid>
-        </RadzenCard>
+        </div>
     }
 </div>
 

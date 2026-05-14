@@ -13,41 +13,118 @@
 
 <PageTitle>Log in</PageTitle>
 
-<div class="login-container">
-    <h1>Вход в систему</h1>
-    <StatusMessage Message="@errorMessage" />
-    <EditForm EditContext="editContext" method="post" OnSubmit="LoginUser" FormName="login">
-        <DataAnnotationsValidator />
-        
-        <div class="form-floating mb-3">
-            <InputText @bind-Value="Input.Email" id="Input.Email" class="form-control" autocomplete="username webauthn" aria-required="true" placeholder="name@example.com" />
-            <label for="Input.Email" class="form-label">Email</label>
-            <ValidationMessage For="() => Input.Email" class="text-danger" />
-        </div>
-        <div class="form-floating mb-3">
-            <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="password" />
-            <label for="Input.Password" class="form-label">Пароль</label>
-            <ValidationMessage For="() => Input.Password" class="text-danger" />
-        </div>
-        <div class="checkbox mb-3">
-            <label class="form-label text-light">
-                <InputCheckbox @bind-Value="Input.RememberMe" class="darker-border-checkbox form-check-input" />
-                Запомнить меня
-            </label>
-        </div>
-        <div>
-            <button type="submit" class="w-100 btn btn-lg btn-login">Войти</button>
-        </div>
-        
-        <div class="mt-4 text-center">
-            <p>
+<div class="login-page-wrapper">
+    <style>
+        .login-page-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 80vh;
+            font-family: 'Inter', sans-serif;
+        }
+        .login-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 24px;
+            padding: 48px;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+        .login-card h1 {
+            color: #fff;
+            font-size: 2.2rem;
+            font-weight: 800;
+            text-align: center;
+            margin-bottom: 32px;
+            background: linear-gradient(135deg, #60a5fa, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .form-control {
+            background: rgba(255, 255, 255, 0.05) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            border-radius: 12px !important;
+            color: #fff !important;
+            padding: 14px 16px !important;
+            height: auto !important;
+        }
+        .form-control:focus {
+            background: rgba(255, 255, 255, 0.08) !important;
+            border-color: #60a5fa !important;
+            box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.15) !important;
+        }
+        .form-control::placeholder {
+            color: rgba(255, 255, 255, 0.4) !important;
+        }
+        .btn-login {
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6) !important;
+            border: none !important;
+            border-radius: 12px !important;
+            color: #fff !important;
+            font-weight: 700 !important;
+            padding: 14px !important;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3) !important;
+            font-size: 1rem !important;
+            letter-spacing: 0.5px;
+        }
+        .btn-login:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 8px 20px rgba(139, 92, 246, 0.5) !important;
+            filter: brightness(1.1);
+        }
+        .btn-login:active {
+            transform: translateY(0) !important;
+        }
+        .text-info {
+            color: #60a5fa !important;
+            text-decoration: none !important;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: color 0.2s ease;
+        }
+        .text-info:hover {
+            color: #93c5fd !important;
+        }
+        .form-check-input {
+            background-color: rgba(255, 255, 255, 0.05) !important;
+            border-color: rgba(255, 255, 255, 0.2) !important;
+        }
+        .form-check-input:checked {
+            background-color: #3b82f6 !important;
+            border-color: #3b82f6 !important;
+        }
+    </style>
+
+    <div class="login-card">
+        <h1>Вход в систему</h1>
+        <StatusMessage Message="@errorMessage" />
+        <EditForm EditContext="editContext" method="post" OnSubmit="LoginUser" FormName="login">
+            <DataAnnotationsValidator />
+            
+            <div class="mb-3">
+                <InputText @bind-Value="Input.Email" id="Input.Email" class="form-control" autocomplete="username webauthn" aria-required="true" placeholder="Email" />
+                <ValidationMessage For="() => Input.Email" class="text-danger" />
+            </div>
+            <div class="mb-3">
+                <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="Пароль" />
+                <ValidationMessage For="() => Input.Password" class="text-danger" />
+            </div>
+            <div class="checkbox mb-4 d-flex justify-content-between align-items-center">
+                <label class="form-label text-light mb-0" style="cursor: pointer; font-size: 0.9rem; color: rgba(255,255,255,0.7) !important;">
+                    <InputCheckbox @bind-Value="Input.RememberMe" class="form-check-input me-2" />
+                    Запомнить меня
+                </label>
                 <a href="Account/ForgotPassword" class="text-info">Забыли пароль?</a>
-            </p>
-            <p>
-                <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))" class="text-info">Регистрация</a>
-            </p>
-        </div>
-    </EditForm>
+            </div>
+            <div>
+                <button type="submit" class="w-100 btn btn-lg btn-login">Войти</button>
+            </div>
+        </EditForm>
+    </div>
 </div>
 
 @code {

@@ -2,78 +2,23 @@
     position: relative;
     display: flex;
     flex-direction: column;
+    min-height: 100vh;
 }
 
 main[b-xd5n28asbn] {
     flex: 1;
-}
-
-.sidebar[b-xd5n28asbn] {
-    background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
-}
-
-.top-row[b-xd5n28asbn] {
-    background-color: #f7f7f7;
-    border-bottom: 1px solid #d6d5d5;
-    justify-content: flex-end;
-    height: 3.5rem;
     display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.content[b-xd5n28asbn] {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
     align-items: center;
-}
-
-    .top-row[b-xd5n28asbn]  a, .top-row[b-xd5n28asbn]  .btn-link {
-        white-space: nowrap;
-        margin-left: 1.5rem;
-        text-decoration: none;
-    }
-
-    .top-row[b-xd5n28asbn]  a:hover, .top-row[b-xd5n28asbn]  .btn-link:hover {
-        text-decoration: underline;
-    }
-
-    .top-row[b-xd5n28asbn]  a:first-child {
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-@media (max-width: 640.98px) {
-    .top-row[b-xd5n28asbn] {
-        justify-content: space-between;
-    }
-
-    .top-row[b-xd5n28asbn]  a, .top-row[b-xd5n28asbn]  .btn-link {
-        margin-left: 0;
-    }
-}
-
-@media (min-width: 641px) {
-    .page[b-xd5n28asbn] {
-        flex-direction: row;
-    }
-
-    .sidebar[b-xd5n28asbn] {
-        width: 250px;
-        height: 100vh;
-        position: sticky;
-        top: 0;
-    }
-
-    .top-row[b-xd5n28asbn] {
-        position: sticky;
-        top: 0;
-        z-index: 1;
-    }
-
-    .top-row.auth[b-xd5n28asbn]  a:first-child {
-        flex: 1;
-        text-align: right;
-        width: 0;
-    }
-
-    .top-row[b-xd5n28asbn], article[b-xd5n28asbn] {
-        padding-left: 2rem !important;
-        padding-right: 1.5rem !important;
-    }
+    width: 100%;
+    padding: 2rem 1rem;
 }
 
 #blazor-error-ui[b-xd5n28asbn] {
@@ -90,9 +35,42 @@ main[b-xd5n28asbn] {
     z-index: 1000;
 }
 
-    #blazor-error-ui .dismiss[b-xd5n28asbn] {
-        cursor: pointer;
-        position: absolute;
-        right: 0.75rem;
-        top: 0.5rem;
-    }
+#blazor-error-ui .dismiss[b-xd5n28asbn] {
+    cursor: pointer;
+    position: absolute;
+    right: 0.75rem;
+    top: 0.5rem;
+}
+
+/* Top Nav Styles */
+.top-nav[b-xd5n28asbn] {
+    background: #1c2135;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    padding: 1rem 2rem;
+}
+
+.nav-container[b-xd5n28asbn] {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.brand[b-xd5n28asbn] {
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: #4da9ff;
+}
+
+nav a[b-xd5n28asbn] {
+    color: #8b92a5;
+    text-decoration: none;
+    margin-left: 1.5rem;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+nav a:hover[b-xd5n28asbn] {
+    color: #ffffff;
+}

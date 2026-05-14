@@ -1,4 +1,5 @@
 @page "/student-schedule"
+@rendermode InteractiveServer
 @using AcademicPerformanceDashboard.Services
 @using AcademicPerformanceDashboard.Models
 @using AcademicPerformanceDashboard.Data
@@ -12,8 +13,11 @@
 
 <PageTitle>Расписание</PageTitle>
 
-<div class="container-fluid">
-    <h2 class="mb-4">Расписание Занятий</h2>
+<div class="dashboard-container">
+    <div class="dashboard-header" style="text-align: left; margin-bottom: 2rem;">
+        <h1 class="dashboard-title">Расписание Занятий</h1>
+        <p class="dashboard-subtitle">Ваше расписание на текущую неделю.</p>
+    </div>
 
     @if (isLoading)
     {
@@ -21,45 +25,39 @@
     }
     else if (!isStudent)
     {
-        <RadzenAlert AlertStyle="AlertStyle.Warning" Text="Доступно только студентам." />
+        <div class="dashboard-card">
+            <p style="color: #ff5252;">Доступно только студентам.</p>
+        </div>
     }
     else
     {
-        <div class="row g-4">
+        <div class="dashboard-grid-top" style="grid-template-columns: repeat(3, 1fr);">
             @foreach (var day in Enum.GetValues<DayOfWeek>().Where(d => d != DayOfWeek.Sunday))
             {
                 var dayItems = schedule.Where(s => s.DayOfWeek == day).ToList();
-                <div class="col-md-6 col-lg-4">
-                    <RadzenCard class="rz-card h-100">
-                        <h4 class="mb-3 text-info">@GetRussianDayOfWeek(day)</h4>
-                        @if (dayItems.Count == 0)
-                        {
-                            <p class="text-muted">Нет занятий</p>
-                        }
-                        else
-                        {
-                            <RadzenTimeline>
-                                @foreach (var item in dayItems)
-                                {
-                                    <RadzenTimelineItem PointStyle="PointStyle.Info">
-                                        <LabelContent>
-                                            <div class="text-muted" style="font-size: 0.9rem;">
-                                                @item.StartTime.ToString(@"hh\:mm")<br/>
-                                                @item.EndTime.ToString(@"hh\:mm")
-                                            </div>
-                                        </LabelContent>
-                                        <ChildContent>
-                                            <div class="fw-bold">@item.Subject.Name</div>
-                                            <div style="font-size: 0.85rem;" class="text-muted">
-                                                <RadzenIcon Icon="room" style="font-size: 1rem; margin-bottom: 2px;" /> @item.Classroom<br/>
-                                                <RadzenIcon Icon="person" style="font-size: 1rem; margin-bottom: 2px;" /> @item.Teacher.FullName
-                                            </div>
-                                        </ChildContent>
-                                    </RadzenTimelineItem>
-                                }
-                            </RadzenTimeline>
-                        }
-                    </RadzenCard>
+                <div class="dashboard-card">
+                    <h4 class="dashboard-card-title" style="color: #4da9ff;">@GetRussianDayOfWeek(day)</h4>
+                    @if (dayItems.Count == 0)
+                    {
+                        <p style="color: #8b92a5;">Нет занятий</p>
+                    }
+                    else
+                    {
+                        <ul class="subject-list">
+                            @foreach (var item in dayItems)
+                            {
+                                <li class="subject-item" style="flex-direction: column; align-items: flex-start;">
+                                    <div style="display: flex; justify-content: space-between; width: 100%;">
+                                        <span class="subject-name" style="font-weight: 600;">@item.Subject.Name</span>
+                                        <span style="color: #8b92a5; font-size: 0.85rem;">@item.StartTime.ToString(@"hh\:mm") - @item.EndTime.ToString(@"hh\:mm")</span>
+                                    </div>
+                                    <div style="color: #5d657b; font-size: 0.85rem;">
+                                        @item.Classroom | @item.Teacher.FullName
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    }
                 </div>
             }
         </div>

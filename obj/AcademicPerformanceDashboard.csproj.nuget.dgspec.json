@@ -1,30 +1,30 @@
 {
   "format": 1,
   "restore": {
-    "/home/root1/PycharmProjects/AcademicDashboard/AcademicPerformanceDashboard.csproj": {}
+    "/home/shaman/PycharmProjects/EDU-dashboard/AcademicPerformanceDashboard.csproj": {}
   },
   "projects": {
-    "/home/root1/PycharmProjects/AcademicDashboard/AcademicPerformanceDashboard.csproj": {
+    "/home/shaman/PycharmProjects/EDU-dashboard/AcademicPerformanceDashboard.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/home/root1/PycharmProjects/AcademicDashboard/AcademicPerformanceDashboard.csproj",
+        "projectUniqueName": "/home/shaman/PycharmProjects/EDU-dashboard/AcademicPerformanceDashboard.csproj",
         "projectName": "AcademicPerformanceDashboard",
-        "projectPath": "/home/root1/PycharmProjects/AcademicDashboard/AcademicPerformanceDashboard.csproj",
-        "packagesPath": "/home/root1/.nuget/packages/",
-        "outputPath": "/home/root1/PycharmProjects/AcademicDashboard/obj/",
+        "projectPath": "/home/shaman/PycharmProjects/EDU-dashboard/AcademicPerformanceDashboard.csproj",
+        "packagesPath": "/home/shaman/.nuget/packages/",
+        "outputPath": "/home/shaman/PycharmProjects/EDU-dashboard/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "/home/root1/.nuget/NuGet/NuGet.Config"
+          "/home/shaman/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
         ],
         "sources": {
+          "/usr/lib/dotnet/library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
           "net10.0": {
-            "framework": "net10.0",
             "targetAlias": "net10.0",
             "projectReferences": {}
           }
@@ -39,17 +39,16 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
-        "SdkAnalysisLevel": "10.0.300"
+        "SdkAnalysisLevel": "10.0.100"
       },
       "frameworks": {
         "net10.0": {
-          "framework": "net10.0",
           "targetAlias": "net10.0",
           "dependencies": {
             "Microsoft.AspNetCore.App.Internal.Assets": {
               "suppressParent": "All",
               "target": "Package",
-              "version": "[10.0.8, )",
+              "version": "[10.0.7, )",
               "autoReferenced": true
             },
             "Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore": {
@@ -97,7 +96,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/home/root1/.dotnet/sdk/10.0.300/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/10.0.107/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.AspNetCore": "(,10.0.32767]",
             "Microsoft.AspNetCore.Antiforgery": "(,10.0.32767]",

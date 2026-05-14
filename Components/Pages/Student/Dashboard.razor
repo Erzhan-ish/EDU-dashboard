@@ -1,4 +1,5 @@
 @page "/student-dashboard"
+@rendermode InteractiveServer
 @using AcademicPerformanceDashboard.Services
 @using AcademicPerformanceDashboard.DTOs
 @using AcademicPerformanceDashboard.Models
@@ -25,162 +26,126 @@ else if (!isStudent)
 }
 else
 {
-    <div class="container-fluid">
-        <div class="row mb-4">
-            <div class="col-md-12">
-                <h2 class="mb-0">Привет, @studentName!</h2>
-                <p class="text-muted">Твой академический прогресс и расписание.</p>
-            </div>
+    <div class="dashboard-container">
+        <div class="dashboard-header" style="text-align: left; margin-bottom: 2rem;">
+            <h1 class="dashboard-title">Привет, @studentName!</h1>
+            <p class="dashboard-subtitle">Твой академический прогресс и расписание.</p>
         </div>
 
-        <div class="row mb-4 g-3">
-            <div class="col-12 col-sm-6 col-xl-2">
-                <RadzenCard class="rz-card text-center">
-                    <div class="stat-title">Ср. балл</div>
-                    <div class="stat-value">@dashboardData.AverageScore</div>
-                </RadzenCard>
+        <div class="dashboard-grid-top" style="grid-template-columns: repeat(4, 1fr);">
+            <div class="dashboard-card">
+                <div class="stat-title">Ср. балл</div>
+                <div class="stat-value neutral">@dashboardData.AverageScore</div>
             </div>
-            <div class="col-12 col-sm-6 col-xl-2">
-                <RadzenCard class="rz-card text-center">
-                    <div class="stat-title">Место в группе</div>
-                    <div class="stat-value">@dashboardData.PositionInGroup / @dashboardData.TotalStudentsInGroup</div>
-                </RadzenCard>
+            <div class="dashboard-card">
+                <div class="stat-title">Место в группе</div>
+                <div class="stat-value neutral">@dashboardData.PositionInGroup / @dashboardData.TotalStudentsInGroup</div>
             </div>
-            <div class="col-12 col-sm-6 col-xl-3">
-                <RadzenCard class="rz-card text-center">
-                    <div class="stat-title">Предметов</div>
-                    <div class="stat-value">@dashboardData.SubjectCount</div>
-                </RadzenCard>
+            <div class="dashboard-card">
+                <div class="stat-title">Предметов</div>
+                <div class="stat-value neutral">@dashboardData.SubjectCount</div>
             </div>
-            <div class="col-12 col-sm-6 col-xl-5">
-                <RadzenCard class="rz-card">
-                    <div class="row text-center">
-                        <div class="col-6 border-end border-secondary">
-                            <div class="stat-title">Лучший</div>
-                            <div class="text-success fw-bold mt-2" style="font-size:1.2rem;">@dashboardData.BestSubject</div>
-                        </div>
-                        <div class="col-6">
-                            <div class="stat-title">Слабый</div>
-                            <div class="text-danger fw-bold mt-2" style="font-size:1.2rem;">@dashboardData.WeakestSubject</div>
-                        </div>
+            <div class="dashboard-card">
+                <div class="stat-title">Лучший / Слабый</div>
+                <div style="display: flex; justify-content: space-around; margin-top: 10px;">
+                    <div style="text-align: center;">
+                        <div class="stat-title" style="font-size: 0.7rem;">Лучший</div>
+                        <div class="positive" style="font-weight: 700;">@dashboardData.BestSubject</div>
                     </div>
-                </RadzenCard>
+                    <div style="text-align: center;">
+                        <div class="stat-title" style="font-size: 0.7rem;">Слабый</div>
+                        <div class="negative" style="font-weight: 700;">@dashboardData.WeakestSubject</div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div class="row mb-4 g-4">
-            <!-- Рост / Падение -->
-            <div class="col-md-4">
-                <RadzenCard class="rz-card h-100">
-                    <h4 class="mb-4">Где ты растешь / где падаешь</h4>
+        <div class="dashboard-grid-middle">
+            <div class="dashboard-card">
+                <h2 class="dashboard-card-title">Динамика среднего балла</h2>
+                <RadzenChart>
+                    <RadzenLineSeries Smooth="true" Data="@timelineData" CategoryProperty="Key" Title="Ср. балл" ValueProperty="Value">
+                        <RadzenMarkers MarkerType="MarkerType.Circle" />
+                    </RadzenLineSeries>
+                    <RadzenCategoryAxis Padding="20" />
+                    <RadzenValueAxis>
+                        <RadzenGridLines Visible="true" />
+                    </RadzenValueAxis>
+                </RadzenChart>
+            </div>
+            <div class="dashboard-grid-middle-right">
+                <div class="dashboard-card">
+                    <h2 class="dashboard-card-title" style="color: #00e676;">📈 Рост и падение</h2>
                     @if (dashboardData.Progress.Count == 0)
                     {
-                        <p class="text-muted">Нет данных для сравнения за последние 2 месяца.</p>
+                        <p style="color: #8b92a5;">Нет данных для сравнения.</p>
                     }
                     else
                     {
-                        <ul class="list-group list-group-flush bg-transparent">
+                        <ul class="subject-list">
                             @foreach (var p in dashboardData.Progress.OrderByDescending(p => p.Difference))
                             {
-                                <li class="list-group-item bg-transparent text-light d-flex justify-content-between align-items-center border-secondary">
-                                    @p.SubjectName
+                                <li class="subject-item">
+                                    <span class="subject-name">@p.SubjectName</span>
                                     @if (p.Difference > 0)
                                     {
-                                        <span class="growth-positive">
-                                            <RadzenIcon Icon="trending_up" class="me-1" />
-                                            +@Math.Round(p.Difference, 1) балла
-                                        </span>
+                                        <span class="subject-score positive">+@Math.Round(p.Difference, 1)</span>
                                     }
                                     else if (p.Difference < 0)
                                     {
-                                        <span class="growth-negative">
-                                            <RadzenIcon Icon="trending_down" class="me-1" />
-                                            @Math.Round(p.Difference, 1) балла
-                                        </span>
+                                        <span class="subject-score negative">@Math.Round(p.Difference, 1)</span>
                                     }
                                     else
                                     {
-                                        <span class="growth-neutral">
-                                            <RadzenIcon Icon="trending_flat" class="me-1" />
-                                            без изменений
-                                        </span>
+                                        <span style="color: #8b92a5;">0.0</span>
                                     }
                                 </li>
                             }
                         </ul>
                     }
-                </RadzenCard>
-            </div>
-
-            <!-- График успеваемости -->
-            <div class="col-md-8">
-                <RadzenCard class="rz-card h-100">
-                    <h4 class="mb-4">Динамика среднего балла</h4>
-                    <RadzenChart ColorScheme="ColorScheme.Monochrome">
-                        <RadzenLineSeries Smooth="true" Data="@timelineData" CategoryProperty="Key" Title="Ср. балл" ValueProperty="Value">
-                            <RadzenMarkers MarkerType="MarkerType.Circle" />
-                        </RadzenLineSeries>
-                        <RadzenCategoryAxis Padding="20" />
-                        <RadzenValueAxis>
-                            <RadzenGridLines Visible="true" />
-                        </RadzenValueAxis>
-                    </RadzenChart>
-                </RadzenCard>
-            </div>
-        </div>
-
-        <div class="row mb-4 g-4">
-            <!-- Таблица оценок -->
-            <div class="col-md-8">
-                <RadzenCard class="rz-card h-100">
-                    <h4 class="mb-4">Последние оценки</h4>
-                    <RadzenDataGrid Data="@recentGrades" TItem="Grade" AllowPaging="true" PageSize="5" class="bg-transparent text-light">
-                        <Columns>
-                            <RadzenDataGridColumn TItem="Grade" Property="Subject.Name" Title="Предмет" />
-                            <RadzenDataGridColumn TItem="Grade" Property="Value" Title="Оценка">
-                                <Template Context="grade">
-                                    <RadzenBadge BadgeStyle="@GetBadgeStyle(grade.Value)" Text="@grade.Value.ToString()" />
-                                </Template>
-                            </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="Grade" Property="Date" Title="Дата" FormatString="{0:d}" />
-                            <RadzenDataGridColumn TItem="Grade" Property="Teacher.FullName" Title="Преподаватель" />
-                        </Columns>
-                    </RadzenDataGrid>
-                </RadzenCard>
-            </div>
-
-            <!-- Расписание -->
-            <div class="col-md-4">
-                <RadzenCard class="rz-card h-100">
-                    <h4 class="mb-4">Расписание на сегодня</h4>
+                </div>
+                
+                <div class="dashboard-card">
+                    <h2 class="dashboard-card-title">Расписание на сегодня</h2>
                     @if (todaySchedule.Count == 0)
                     {
-                        <p class="text-muted">На сегодня занятий нет. Отдыхай!</p>
+                        <p style="color: #8b92a5;">На сегодня занятий нет. Отдыхай!</p>
                     }
                     else
                     {
-                        <RadzenTimeline>
+                        <ul class="subject-list">
                             @foreach (var item in todaySchedule)
                             {
-                                <RadzenTimelineItem PointStyle="PointStyle.Info">
-                                    <LabelContent>
-                                        <div class="text-muted" style="font-size: 0.9rem;">
-                                            @item.StartTime.ToString(@"hh\:mm") - @item.EndTime.ToString(@"hh\:mm")
-                                        </div>
-                                    </LabelContent>
-                                    <ChildContent>
-                                        <div class="fw-bold">@item.Subject.Name</div>
-                                        <div style="font-size: 0.85rem;" class="text-muted">
-                                            @item.Classroom<br/>
-                                            @item.Teacher.FullName
-                                        </div>
-                                    </ChildContent>
-                                </RadzenTimelineItem>
+                                <li class="subject-item" style="flex-direction: column; align-items: flex-start;">
+                                    <div style="display: flex; justify-content: space-between; width: 100%;">
+                                        <span class="subject-name" style="font-weight: 600;">@item.Subject.Name</span>
+                                        <span style="color: #8b92a5; font-size: 0.85rem;">@item.StartTime.ToString(@"hh\:mm") - @item.EndTime.ToString(@"hh\:mm")</span>
+                                    </div>
+                                    <div style="color: #5d657b; font-size: 0.85rem;">
+                                        @item.Classroom | @item.Teacher.FullName
+                                    </div>
+                                </li>
                             }
-                        </RadzenTimeline>
+                        </ul>
                     }
-                </RadzenCard>
+                </div>
             </div>
+        </div>
+
+        <div class="dashboard-card" style="margin-top: 20px;">
+            <h2 class="dashboard-card-title">Последние оценки</h2>
+            <RadzenDataGrid Data="@recentGrades" TItem="Grade" AllowPaging="true" PageSize="5" class="bg-transparent text-light">
+                <Columns>
+                    <RadzenDataGridColumn TItem="Grade" Property="Subject.Name" Title="Предмет" />
+                    <RadzenDataGridColumn TItem="Grade" Property="Value" Title="Оценка">
+                        <Template Context="grade">
+                            <span class="@(grade.Value >= 60 ? "positive" : "negative")" style="font-weight: 600;">@grade.Value</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="Grade" Property="Date" Title="Дата" FormatString="{0:d}" />
+                    <RadzenDataGridColumn TItem="Grade" Property="Teacher.FullName" Title="Преподаватель" />
+                </Columns>
+            </RadzenDataGrid>
         </div>
     </div>
 }

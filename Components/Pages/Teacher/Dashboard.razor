@@ -1,4 +1,5 @@
 @page "/teacher-dashboard"
+@rendermode InteractiveServer
 @using AcademicPerformanceDashboard.Services
 @using AcademicPerformanceDashboard.Models
 @using AcademicPerformanceDashboard.Data
@@ -11,80 +12,103 @@
 
 <PageTitle>Дашборд Преподавателя</PageTitle>
 
-<div class="container-fluid">
-    @if (isLoading)
-    {
+@if (isLoading)
+{
+    <div class="dashboard-container">
         <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
-    }
-    else if (!isTeacher)
-    {
-        <RadzenAlert AlertStyle="AlertStyle.Warning" Text="Вы не зарегистрированы как преподаватель. Этот дашборд доступен только преподавателям." />
-    }
-    else
-    {
-        <div class="row mb-4">
-            <div class="col-md-12">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h2 class="mb-0">Здравствуйте, @teacherName!</h2>
-                        <p class="text-muted">Аналитика по вашим группам.</p>
-                    </div>
-                    <RadzenButton Text="Управление Оценками" ButtonStyle="ButtonStyle.Primary" Click=@(() => NavigationManager.NavigateTo("teacher-grades")) />
-                </div>
+    </div>
+}
+else if (!isTeacher)
+{
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1 class="dashboard-title">Ошибка доступа</h1>
+            <p class="dashboard-subtitle">Этот дашборд доступен только преподавателям.</p>
+        </div>
+    </div>
+}
+else
+{
+    <div class="dashboard-container">
+        <div class="dashboard-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <div style="text-align: left;">
+                <h1 class="dashboard-title">Здравствуйте, @teacherName!</h1>
+                <p class="dashboard-subtitle">Аналитика по вашим группам.</p>
             </div>
+            <RadzenButton Text="Управление Оценками" ButtonStyle="ButtonStyle.Primary" Click=@(() => NavigationManager.NavigateTo("teacher-grades")) style="background: #4da9ff; border-radius: 8px;" />
         </div>
 
-        <div class="row g-4 mb-4">
+        <div class="dashboard-grid-top" style="grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));">
             @foreach (var g in groupStats)
             {
-                <div class="col-md-4">
-                    <RadzenCard class="rz-card text-center">
-                        <h4 class="mb-2">@g.GroupName</h4>
-                        <div class="stat-title">Средний балл</div>
-                        <div class="stat-value">@Math.Round(g.AverageScore, 1)</div>
-                        <div class="text-muted mt-2">@g.StudentCount студентов</div>
-                    </RadzenCard>
+                <div class="dashboard-card" style="text-align: center;">
+                    <h4 style="color: #4da9ff; font-weight: 600; margin-bottom: 0.5rem;">@g.GroupName</h4>
+                    <div class="stat-title">Средний балл</div>
+                    <div class="stat-value neutral">@Math.Round(g.AverageScore, 1)</div>
+                    <div style="color: #8b92a5; font-size: 0.85rem; margin-top: 0.5rem;">@g.StudentCount студентов</div>
                 </div>
             }
         </div>
 
-        <div class="row g-4">
-            <div class="col-md-6">
-                <RadzenCard class="rz-card h-100">
-                    <h4 class="mb-4 text-warning">Студенты с низкой успеваемостью</h4>
-                    <RadzenDataGrid Data="@weakStudents" TItem="dynamic" AllowPaging="true" PageSize="5" class="bg-transparent text-light">
-                        <Columns>
-                            <RadzenDataGridColumn TItem="dynamic" Property="StudentName" Title="Студент" />
-                            <RadzenDataGridColumn TItem="dynamic" Property="GroupName" Title="Группа" />
-                            <RadzenDataGridColumn TItem="dynamic" Property="AverageScore" Title="Ср. балл">
-                                <Template Context="data">
-                                    <span class="text-danger fw-bold">@Math.Round(data.AverageScore, 1)</span>
-                                </Template>
-                            </RadzenDataGridColumn>
-                        </Columns>
-                    </RadzenDataGrid>
-                </RadzenCard>
+        <div class="dashboard-grid-middle" style="margin-top: 2rem;">
+            <div class="dashboard-card">
+                <h2 class="dashboard-card-title" style="color: #ff5252;">⚠️ Студенты с низкой успеваемостью</h2>
+                <RadzenDataGrid Data="@weakStudents" TItem="dynamic" AllowPaging="true" PageSize="5" class="bg-transparent text-light">
+                    <Columns>
+                        <RadzenDataGridColumn TItem="dynamic" Property="StudentName" Title="Студент" />
+                        <RadzenDataGridColumn TItem="dynamic" Property="GroupName" Title="Группа" />
+                        <RadzenDataGridColumn TItem="dynamic" Property="AverageScore" Title="Ср. балл">
+                            <Template Context="data">
+                                <span class="text-danger fw-bold">@Math.Round(data.AverageScore, 1)</span>
+                            </Template>
+                        </RadzenDataGridColumn>
+                    </Columns>
+                </RadzenDataGrid>
             </div>
-            <div class="col-md-6">
-                <RadzenCard class="rz-card h-100">
-                    <h4 class="mb-4">Последние выставленные оценки</h4>
-                    <RadzenDataGrid Data="@recentGrades" TItem="Grade" AllowPaging="true" PageSize="5" class="bg-transparent text-light">
-                        <Columns>
-                            <RadzenDataGridColumn TItem="Grade" Property="Student.FullName" Title="Студент" />
-                            <RadzenDataGridColumn TItem="Grade" Property="Subject.Name" Title="Предмет" />
-                            <RadzenDataGridColumn TItem="Grade" Property="Value" Title="Оценка">
-                                <Template Context="grade">
-                                    <RadzenBadge BadgeStyle="@(grade.Value >= 60 ? BadgeStyle.Success : BadgeStyle.Danger)" Text="@grade.Value.ToString()" />
-                                </Template>
-                            </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="Grade" Property="Date" Title="Дата" FormatString="{0:d}" />
-                        </Columns>
-                    </RadzenDataGrid>
-                </RadzenCard>
+            
+            <div class="dashboard-card">
+                <h2 class="dashboard-card-title">Последние выставленные оценки</h2>
+                <RadzenDataGrid Data="@recentGrades" TItem="Grade" AllowPaging="true" PageSize="5" class="bg-transparent text-light">
+                    <Columns>
+                        <RadzenDataGridColumn TItem="Grade" Property="Student.FullName" Title="Студент">
+                            <Template Context="grade">
+                                <span title="@grade.Student.FullName">@grade.Student.FullName</span>
+                            </Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="Grade" Property="Subject.Name" Title="Предмет">
+                            <Template Context="grade">
+                                <span title="@grade.Subject.Name">@grade.Subject.Name</span>
+                            </Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="Grade" Property="Value" Title="Оценка">
+                            <Template Context="grade">
+                                <span class="@(grade.Value >= 60 ? "positive" : "negative")" style="font-weight: 600;">@grade.Value</span>
+                            </Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="Grade" Property="Date" Title="Дата" FormatString="{0:d}" />
+                    </Columns>
+                </RadzenDataGrid>
             </div>
         </div>
-    }
-</div>
+
+        <div class="dashboard-card" style="margin-top: 2rem;">
+            <h2 class="dashboard-card-title">Ваше Расписание</h2>
+            <RadzenDataGrid Data="@teacherSchedule" TItem="ScheduleItem" AllowPaging="true" PageSize="5" class="bg-transparent text-light">
+                <Columns>
+                    <RadzenDataGridColumn TItem="ScheduleItem" Property="DayOfWeek" Title="День" />
+                    <RadzenDataGridColumn TItem="ScheduleItem" Property="StartTime" Title="Время">
+                        <Template Context="item">
+                            <span>@item.StartTime.ToString(@"hh\:mm") - @item.EndTime.ToString(@"hh\:mm")</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="ScheduleItem" Property="Group.Name" Title="Группа" />
+                    <RadzenDataGridColumn TItem="ScheduleItem" Property="Subject.Name" Title="Предмет" />
+                    <RadzenDataGridColumn TItem="ScheduleItem" Property="Classroom" Title="Аудитория" />
+                </Columns>
+            </RadzenDataGrid>
+        </div>
+    </div>
+}
 
 @code {
     [Inject] NavigationManager NavigationManager { get; set; } = null!;
@@ -96,6 +120,7 @@
     private List<GroupStat> groupStats = new();
     private List<dynamic> weakStudents = new();
     private List<Grade> recentGrades = new();
+    private List<ScheduleItem> teacherSchedule = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -126,6 +151,17 @@
                         .Include(g => g.Subject)
                         .Where(g => g.TeacherId == teacher.Id)
                         .ToListAsync();
+
+                    var scheduleList = await DbContext.ScheduleItems
+                        .Include(s => s.Group)
+                        .Include(s => s.Subject)
+                        .Where(s => s.TeacherId == teacher.Id)
+                        .ToListAsync();
+
+                    teacherSchedule = scheduleList
+                        .OrderBy(s => s.DayOfWeek)
+                        .ThenBy(s => s.StartTime)
+                        .ToList();
 
                     foreach (var g in groups)
                     {

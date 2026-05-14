@@ -1,4 +1,5 @@
 @page "/student-ranking"
+@rendermode InteractiveServer
 @using AcademicPerformanceDashboard.Services
 @using AcademicPerformanceDashboard.DTOs
 @using AcademicPerformanceDashboard.Data
@@ -12,8 +13,11 @@
 
 <PageTitle>Рейтинг Группы</PageTitle>
 
-<div class="container-fluid">
-    <h2 class="mb-4">Рейтинг Студентов в Группе</h2>
+<div class="dashboard-container">
+    <div class="dashboard-header" style="text-align: left; margin-bottom: 2rem;">
+        <h1 class="dashboard-title">Рейтинг Группы</h1>
+        <p class="dashboard-subtitle">Рейтинг студентов в вашей группе по среднему баллу.</p>
+    </div>
 
     @if (isLoading)
     {
@@ -21,11 +25,13 @@
     }
     else if (!isStudent)
     {
-        <RadzenAlert AlertStyle="AlertStyle.Warning" Text="Доступно только студентам." />
+        <div class="dashboard-card">
+            <p style="color: #ff5252;">Доступно только студентам.</p>
+        </div>
     }
     else
     {
-        <RadzenCard class="rz-card">
+        <div class="dashboard-card">
             <RadzenDataGrid Data="@ranking" TItem="StudentRankingDto" AllowPaging="true" PageSize="15" class="bg-transparent text-light">
                 <Columns>
                     <RadzenDataGridColumn TItem="StudentRankingDto" Property="Position" Title="Место" Width="100px">
@@ -64,7 +70,7 @@
                     <RadzenDataGridColumn TItem="StudentRankingDto" Property="GradeCount" Title="Кол-во оценок" />
                 </Columns>
             </RadzenDataGrid>
-        </RadzenCard>
+        </div>
     }
 </div>
 

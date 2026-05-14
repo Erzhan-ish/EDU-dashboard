@@ -1,4 +1,5 @@
 @page "/teacher-grades"
+@rendermode InteractiveServer
 @using AcademicPerformanceDashboard.Services
 @using AcademicPerformanceDashboard.Models
 @using AcademicPerformanceDashboard.Data
@@ -14,77 +15,85 @@
 
 <PageTitle>Управление Оценками</PageTitle>
 
-<div class="container-fluid">
-    <h2 class="mb-4">Управление Оценками</h2>
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1 class="dashboard-title">Управление Оценками</h1>
+        <p class="dashboard-subtitle">Выставляйте оценки и просматривайте историю.</p>
+    </div>
 
     @if (isLoading)
     {
-        <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+        <div class="dashboard-container">
+            <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+        </div>
     }
     else if (!isTeacher)
     {
-        <RadzenAlert AlertStyle="AlertStyle.Warning" Text="Доступно только преподавателям." />
+        <div class="dashboard-card">
+            <p style="color: #ff5252;">Доступно только преподавателям.</p>
+        </div>
     }
     else
     {
-        <RadzenCard class="rz-card mb-4">
+        <div class="dashboard-card mb-4">
+            <h2 class="dashboard-card-title">Фильтры</h2>
             <div class="row g-3 align-items-end">
-                <div class="col-md-3">
-                    <RadzenLabel Text="Группа" />
-                    <RadzenDropDown TValue="int?" Data="@teacherGroups" TextProperty="Name" ValueProperty="Id" Class="w-100"
+                <div class="col-md-4">
+                    <RadzenLabel Text="Группа" style="color: #8b92a5; font-size: 0.85rem; margin-bottom: 0.25rem; display: block;" />
+                    <RadzenDropDown TValue="int?" Data="@teacherGroups" TextProperty="Name" ValueProperty="Id" Class="w-100 bg-transparent text-light border-secondary"
                                     Change="@(args => OnGroupChanged(args))" Placeholder="Выберите группу" />
                 </div>
-                <div class="col-md-3">
-                    <RadzenLabel Text="Предмет" />
-                    <RadzenDropDown TValue="int?" Data="@teacherSubjects" TextProperty="Name" ValueProperty="Id" Class="w-100"
+                <div class="col-md-4">
+                    <RadzenLabel Text="Предмет" style="color: #8b92a5; font-size: 0.85rem; margin-bottom: 0.25rem; display: block;" />
+                    <RadzenDropDown TValue="int?" Data="@teacherSubjects" TextProperty="Name" ValueProperty="Id" Class="w-100 bg-transparent text-light border-secondary"
                                     Change="@(args => OnSubjectChanged(args))" Placeholder="Выберите предмет" Disabled="@(selectedGroupId == null)" />
                 </div>
                 <div class="col-md-4">
-                    <RadzenLabel Text="Студент" />
-                    <RadzenDropDown TValue="int?" Data="@students" TextProperty="FullName" ValueProperty="Id" Class="w-100"
+                    <RadzenLabel Text="Студент" style="color: #8b92a5; font-size: 0.85rem; margin-bottom: 0.25rem; display: block;" />
+                    <RadzenDropDown TValue="int?" Data="@students" TextProperty="FullName" ValueProperty="Id" Class="w-100 bg-transparent text-light border-secondary"
                                     Change="@(args => OnStudentChanged(args))" Placeholder="Выберите студента" Disabled="@(selectedSubjectId == null)" />
                 </div>
             </div>
-        </RadzenCard>
+        </div>
 
         @if (selectedStudentId != null && selectedSubjectId != null)
         {
-            <RadzenCard class="rz-card mb-4">
-                <h4 class="mb-3">Новая оценка</h4>
+            <div class="dashboard-card mb-4">
+                <h2 class="dashboard-card-title" style="color: #00e676;">Новая оценка</h2>
                 <div class="row g-3 align-items-end">
                     <div class="col-md-3">
-                        <RadzenLabel Text="Оценка (0-100)" />
-                        <RadzenNumeric TValue="int" @bind-Value="newGradeValue" Min="0" Max="100" Class="w-100" />
+                        <RadzenLabel Text="Оценка (0-100)" style="color: #8b92a5; font-size: 0.85rem; margin-bottom: 0.25rem; display: block;" />
+                        <RadzenNumeric TValue="int" @bind-Value="newGradeValue" Min="0" Max="100" Class="w-100 bg-transparent text-light border-secondary" />
                     </div>
                     <div class="col-md-6">
-                        <RadzenLabel Text="Комментарий (необязательно)" />
-                        <RadzenTextBox @bind-Value="newGradeComment" Class="w-100" />
+                        <RadzenLabel Text="Комментарий (необязательно)" style="color: #8b92a5; font-size: 0.85rem; margin-bottom: 0.25rem; display: block;" />
+                        <RadzenTextBox @bind-Value="newGradeComment" Class="w-100 bg-transparent text-light border-secondary" />
                     </div>
                     <div class="col-md-3">
-                        <RadzenButton Text="Добавить Оценку" ButtonStyle="ButtonStyle.Success" Click=@AddGrade Class="w-100" />
+                        <RadzenButton Text="Добавить Оценку" ButtonStyle="ButtonStyle.Success" Click=@AddGrade Class="w-100" style="background: #00e676; color: #0f121d;" />
                     </div>
                 </div>
-            </RadzenCard>
+            </div>
 
-            <RadzenCard class="rz-card">
-                <h4 class="mb-3">История оценок студента по предмету</h4>
+            <div class="dashboard-card">
+                <h2 class="dashboard-card-title">История оценок студента по предмету</h2>
                 <RadzenDataGrid Data="@studentGrades" TItem="Grade" AllowPaging="true" PageSize="5" class="bg-transparent text-light">
                     <Columns>
                         <RadzenDataGridColumn TItem="Grade" Property="Value" Title="Оценка">
                             <Template Context="grade">
-                                <RadzenBadge BadgeStyle="@(grade.Value >= 60 ? BadgeStyle.Success : BadgeStyle.Danger)" Text="@grade.Value.ToString()" />
+                                <span class="@(grade.Value >= 60 ? "positive" : "negative")" style="font-weight: 600;">@grade.Value</span>
                             </Template>
                         </RadzenDataGridColumn>
                         <RadzenDataGridColumn TItem="Grade" Property="Date" Title="Дата" FormatString="{0:d}" />
                         <RadzenDataGridColumn TItem="Grade" Property="Comment" Title="Комментарий" />
                         <RadzenDataGridColumn TItem="Grade" Context="grade" Filterable="false" Sortable="false" TextAlign="TextAlign.Center" Width="100px">
                             <Template Context="grade">
-                                <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete" Size="ButtonSize.Small" Click=@(args => DeleteGrade(grade)) @onclick:stopPropagation="true" />
+                                <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete" Size="ButtonSize.Small" Click=@(args => DeleteGrade(grade)) @onclick:stopPropagation="true" style="background: #ff5252; border: none;" />
                             </Template>
                         </RadzenDataGridColumn>
                     </Columns>
                 </RadzenDataGrid>
-            </RadzenCard>
+            </div>
         }
     }
 </div>
@@ -191,7 +200,11 @@
 
     private async Task AddGrade()
     {
-        if (selectedStudentId == null || selectedSubjectId == null) return;
+        if (selectedStudentId == null || selectedSubjectId == null)
+        {
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Error, Summary = "Ошибка", Detail = "Выберите студента и предмет" });
+            return;
+        }
 
         var grade = new Grade
         {

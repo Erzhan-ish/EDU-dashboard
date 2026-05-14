@@ -1,0 +1,206 @@
+@page "/profile"
+@rendermode InteractiveServer
+@using AcademicPerformanceDashboard.Services
+@using AcademicPerformanceDashboard.Models
+@using AcademicPerformanceDashboard.Data
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext DbContext
+@inject AuthenticationStateProvider AuthStateProvider
+@inject UserManager<ApplicationUser> UserManager
+@inject StudentAnalyticsService AnalyticsService
+
+<PageTitle>Профиль</PageTitle>
+
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1 class="dashboard-title">Профиль пользователя</h1>
+        <p class="dashboard-subtitle">Информация о вашем аккаунте.</p>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="dashboard-container">
+            <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+        </div>
+    }
+    else
+    {
+        <div class="dashboard-grid-middle">
+            <!-- General Info Card -->
+            <div class="dashboard-card">
+                <div style="display: flex; align-items: center; gap: 1.5rem; margin-bottom: 1.5rem;">
+                    <div style="width: 80px; height: 80px; background: #4da9ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 600; color: #0f121d;">
+                        @userInitials
+                    </div>
+                    <div>
+                        <h2 style="margin-bottom: 0.25rem;">@fullName</h2>
+                        <span class="badge @roleBadgeClass">@roleName</span>
+                    </div>
+                </div>
+                
+                <div style="color: #8b92a5; font-size: 0.9rem;">
+                    <p style="margin-bottom: 0.5rem;"><strong>Email:</strong> @email</p>
+                    <form action="Account/Logout" method="post" style="margin-top: 1.5rem;">
+                        <AntiforgeryToken />
+                        <input type="hidden" name="returnUrl" value="" />
+                        <button type="submit" class="btn btn-danger" style="background: #ff5252; border: none; border-radius: 8px; padding: 0.5rem 1rem; color: white; font-weight: 600;">
+                            Выйти из аккаунта
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Role Specific Info -->
+            @if (isStudent)
+            {
+                <div class="dashboard-card">
+                    <h2 class="dashboard-card-title" style="color: #4da9ff;">Академические данные</h2>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <p style="color: #8b92a5; margin-bottom: 0.25rem;">Группа</p>
+                            <p style="font-weight: 600;">@studentGroup</p>
+                        </div>
+                        <div>
+                            <p style="color: #8b92a5; margin-bottom: 0.25rem;">Курс</p>
+                            <p style="font-weight: 600;">@studentCourse</p>
+                        </div>
+                        <div>
+                            <p style="color: #8b92a5; margin-bottom: 0.25rem;">Средний балл</p>
+                            <p class="positive" style="font-weight: 600;">@averageScore</p>
+                        </div>
+                        <div>
+                            <p style="color: #8b92a5; margin-bottom: 0.25rem;">Место в группе</p>
+                            <p style="font-weight: 600;">@positionInGroup / @totalStudentsInGroup</p>
+                        </div>
+                    </div>
+                </div>
+            }
+            else if (isTeacher)
+            {
+                <div class="dashboard-card">
+                    <h2 class="dashboard-card-title" style="color: #4da9ff;">Преподавательская деятельность</h2>
+                    <p style="color: #8b92a5; margin-bottom: 0.5rem;"><strong>Ваши предметы:</strong></p>
+                    <ul style="color: #e2e8f0; padding-left: 1.5rem;">
+                        @foreach (var s in teacherSubjects)
+                        {
+                            <li>@s</li>
+                        }
+                    </ul>
+                    <p style="color: #8b92a5; margin-top: 1rem; margin-bottom: 0.5rem;"><strong>Ваши группы:</strong></p>
+                    <ul style="color: #e2e8f0; padding-left: 1.5rem;">
+                        @foreach (var g in teacherGroups)
+                        {
+                            <li>@g</li>
+                        }
+                    </ul>
+                </div>
+            }
+            else if (isAdmin)
+            {
+                <div class="dashboard-card">
+                    <h2 class="dashboard-card-title" style="color: #00e676;">Панель управления</h2>
+                    <p style="color: #e2e8f0;">У вас есть полный доступ к системе. Вы можете управлять пользователями, группами и расписанием.</p>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private bool isLoading = true;
+    private string fullName = "";
+    private string email = "";
+    private string userInitials = "";
+    private string roleName = "Пользователь";
+    private string roleBadgeClass = "bg-secondary";
+
+    private bool isStudent = false;
+    private bool isTeacher = false;
+    private bool isAdmin = false;
+
+    // Student specific
+    private string studentGroup = "";
+    private int studentCourse = 0;
+    private double averageScore = 0;
+    private int positionInGroup = 0;
+    private int totalStudentsInGroup = 0;
+
+    // Teacher specific
+    private List<string> teacherSubjects = new();
+    private List<string> teacherGroups = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            email = user.Identity.Name ?? "";
+            
+            var appUser = await UserManager.GetUserAsync(user);
+            if (appUser != null)
+            {
+                fullName = appUser.FullName;
+                userInitials = string.Join("", fullName.Split(' ').Select(n => n.FirstOrDefault())).ToUpper();
+                if (userInitials.Length > 2) userInitials = userInitials.Substring(0, 2);
+
+                // Check Admin
+                if (email == "admin@example.com")
+                {
+                    isAdmin = true;
+                    roleName = "Администратор";
+                    roleBadgeClass = "bg-danger";
+                }
+                else
+                {
+                    // Check Student
+                    var student = await DbContext.Students
+                        .Include(s => s.Group)
+                        .FirstOrDefaultAsync(s => s.ApplicationUserId == appUser.Id);
+                        
+                    if (student != null)
+                    {
+                        isStudent = true;
+                        roleName = "Студент";
+                        roleBadgeClass = "bg-success";
+                        studentGroup = student.Group.Name;
+                        studentCourse = student.Group.Course;
+                        
+                        var dashboardData = await AnalyticsService.GetStudentDashboardDataAsync(student.Id);
+                        averageScore = dashboardData.AverageScore;
+                        positionInGroup = dashboardData.PositionInGroup;
+                        totalStudentsInGroup = dashboardData.TotalStudentsInGroup;
+                    }
+                    else
+                    {
+                        // Check Teacher
+                        var teacher = await DbContext.Teachers
+                            .FirstOrDefaultAsync(t => t.ApplicationUserId == appUser.Id);
+                            
+                        if (teacher != null)
+                        {
+                            isTeacher = true;
+                            roleName = "Преподаватель";
+                            roleBadgeClass = "bg-primary";
+                            
+                            teacherSubjects = await DbContext.TeacherSubjectGroups
+                                .Where(tsg => tsg.TeacherId == teacher.Id)
+                                .Select(tsg => tsg.Subject.Name)
+                                .Distinct()
+                                .ToListAsync();
+                                
+                            teacherGroups = await DbContext.TeacherSubjectGroups
+                                .Where(tsg => tsg.TeacherId == teacher.Id)
+                                .Select(tsg => tsg.Group.Name)
+                                .Distinct()
+                                .ToListAsync();
+                        }
+                    }
+                }
+            }
+        }
+        isLoading = false;
+    }
+}

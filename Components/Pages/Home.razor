@@ -1,7 +1,233 @@
-﻿@page "/"
+@page "/"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@using Radzen
+@using Radzen.Blazor
+@using AcademicPerformanceDashboard.Services
+@using AcademicPerformanceDashboard.DTOs
+@using AcademicPerformanceDashboard.Models
+@using AcademicPerformanceDashboard.Data
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@inject NavigationManager NavigationManager
+@inject StudentAnalyticsService AnalyticsService
+@inject GradeService GradeService
+@inject ApplicationDbContext DbContext
+@inject AuthenticationStateProvider AuthStateProvider
+@inject UserManager<ApplicationUser> UserManager
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Дашборд</PageTitle>
 
-<h1>Hello, world!</h1>
+@if (isLoading)
+{
+    <div class="dashboard-container">
+        <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+    </div>
+}
+else if (!isStudent)
+{
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1 class="dashboard-title">Привет!</h1>
+            <p class="dashboard-subtitle">Вы вошли, но не зарегистрированы как студент.</p>
+        </div>
+    </div>
+}
+else
+{
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1 class="dashboard-title">Привет, @studentName!</h1>
+            <p class="dashboard-subtitle">Отслеживайте свой рост и оставайтесь впереди.</p>
+        </div>
 
-Welcome to your new app.
+        <div class="dashboard-grid-top">
+            <div class="dashboard-card">
+                <div class="stat-title">ОБЩИЙ СРЕДНИЙ БАЛЛ</div>
+                <div class="stat-value neutral">@dashboardData.AverageScore</div>
+            </div>
+            <div class="dashboard-card">
+                <div class="stat-title">ЛУЧШИЙ ПРЕДМЕТ</div>
+                <div class="stat-value positive">@dashboardData.BestSubject</div>
+            </div>
+            <div class="dashboard-card">
+                <div class="stat-title">САМЫЙ СЛАБЫЙ ПРЕДМЕТ</div>
+                <div class="stat-value negative">@dashboardData.WeakestSubject</div>
+            </div>
+        </div>
+
+        <div class="dashboard-grid-middle">
+            <div class="dashboard-card">
+                <h2 class="dashboard-card-title">График выполнения работ</h2>
+                <RadzenChart>
+                    @foreach (var subject in dynamicChartData)
+                    {
+                        <RadzenLineSeries Smooth="true" Data="@subject.Points" CategoryProperty="Date" Title="@subject.SubjectName" LineType="LineType.Solid" ValueProperty="Score">
+                            <RadzenMarkers MarkerType="MarkerType.Circle" />
+                            <RadzenSeriesDataLabels Visible="false" />
+                        </RadzenLineSeries>
+                    }
+                    <RadzenCategoryAxis Padding="20" FormatString="{0:MMM yy}" />
+                    <RadzenValueAxis>
+                        <RadzenGridLines Visible="true" />
+                        <RadzenAxisTitle Text="" />
+                    </RadzenValueAxis>
+                    <RadzenChartTooltipOptions Shared="true" />
+                </RadzenChart>
+            </div>
+            <div class="dashboard-grid-middle-right">
+                <div class="dashboard-card">
+                    <h2 class="dashboard-card-title" style="color: #00e676;">🚀 Там, где вы растете</h2>
+                    @if (dashboardData.Progress.Where(p => p.Difference > 0).Count() == 0)
+                    {
+                        <p style="color: #8b92a5;">Нет данных о росте.</p>
+                    }
+                    else
+                    {
+                        <ul class="subject-list">
+                            @foreach (var p in dashboardData.Progress.Where(p => p.Difference > 0).OrderByDescending(p => p.Difference))
+                            {
+                                <li class="subject-item">
+                                    <span class="subject-name">@p.SubjectName</span>
+                                    <span class="subject-score positive">+@Math.Round(p.Difference, 1)</span>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+                <div class="dashboard-card">
+                    <h2 class="dashboard-card-title" style="color: #ff5252;">⚠️ Куда ты падаешь</h2>
+                    @if (dashboardData.Progress.Where(p => p.Difference < 0).Count() == 0)
+                    {
+                        <p style="color: #8b92a5;">Нет данных о падении.</p>
+                    }
+                    else
+                    {
+                        <ul class="subject-list">
+                            @foreach (var p in dashboardData.Progress.Where(p => p.Difference < 0).OrderBy(p => p.Difference))
+                            {
+                                <li class="subject-item">
+                                    <span class="subject-name">@p.SubjectName</span>
+                                    <span class="subject-score negative">@Math.Round(p.Difference, 1)</span>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-card" style="margin-top: 20px;">
+            <h2 class="dashboard-card-title">Последние оценки</h2>
+            <RadzenDataGrid Data="@recentGrades" TItem="Grade" AllowPaging="true" PageSize="5" class="bg-transparent text-light">
+                <Columns>
+                    <RadzenDataGridColumn TItem="Grade" Property="Subject.Name" Title="Предмет" />
+                    <RadzenDataGridColumn TItem="Grade" Property="Value" Title="Оценка">
+                        <Template Context="grade">
+                            <span class="@(grade.Value >= 60 ? "positive" : "negative")" style="font-weight: 600;">@grade.Value</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="Grade" Property="Date" Title="Дата" FormatString="{0:d}" />
+                    <RadzenDataGridColumn TItem="Grade" Property="Teacher.FullName" Title="Преподаватель" />
+                </Columns>
+            </RadzenDataGrid>
+        </div>
+
+
+    </div>
+}
+
+@code {
+    private bool isLoading = true;
+    private bool isStudent = false;
+    private string studentName = "";
+    private int studentId;
+    private int groupId;
+    
+    private StudentDashboardDto dashboardData = new();
+    private List<Grade> recentGrades = new();
+
+
+    class DataItem
+    {
+        public DateTime Date { get; set; }
+        public double Score { get; set; }
+    }
+
+    class SubjectChartData
+    {
+        public string SubjectName { get; set; } = "";
+        public List<DataItem> Points { get; set; } = new();
+    }
+
+    private List<SubjectChartData> dynamicChartData = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var appUser = await UserManager.GetUserAsync(user);
+            if (appUser != null)
+            {
+                var student = await DbContext.Students.FirstOrDefaultAsync(s => s.ApplicationUserId == appUser.Id);
+                if (student != null)
+                {
+                    isStudent = true;
+                    studentName = student.FullName;
+                    studentId = student.Id;
+                    groupId = student.GroupId;
+
+                    dashboardData = await AnalyticsService.GetStudentDashboardDataAsync(student.Id);
+                    recentGrades = await GradeService.GetGradesByStudentAsync(student.Id);
+
+                    // Load dynamic chart data
+                    var allGrades = await DbContext.Grades
+                        .Where(g => g.StudentId == student.Id)
+                        .Include(g => g.Subject)
+                        .OrderBy(g => g.Date)
+                        .ToListAsync();
+
+                    dynamicChartData = allGrades
+                        .GroupBy(g => g.Subject.Name)
+                        .Select(g => new SubjectChartData
+                        {
+                            SubjectName = g.Key,
+                            Points = g.GroupBy(x => new DateTime(x.Date.Year, x.Date.Month, 1))
+                                      .Select(m => new DataItem { Date = m.Key, Score = Math.Round(m.Average(x => x.Value), 1) })
+                                      .OrderBy(m => m.Date)
+                                      .ToList()
+                        })
+                        .ToList();
+                }
+                else
+                {
+                    // Not a student. Check if Admin
+                    if (user.Identity.Name == "admin@example.com")
+                    {
+                        NavigationManager.NavigateTo("/admin-dashboard");
+                        return;
+                    }
+                    
+                    // Check if Teacher
+                    var teacher = await DbContext.Teachers.AnyAsync(t => t.ApplicationUserId == appUser.Id);
+                    if (teacher)
+                    {
+                        NavigationManager.NavigateTo("/teacher-dashboard");
+                        return;
+                    }
+                }
+            }
+        }
+        isLoading = false;
+    }
+
+
+}
