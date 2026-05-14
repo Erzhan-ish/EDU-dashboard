@@ -1,0 +1,99 @@
+@page "/student-ranking"
+@using AcademicPerformanceDashboard.Services
+@using AcademicPerformanceDashboard.DTOs
+@using AcademicPerformanceDashboard.Data
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@inject RankingService RankingService
+@inject ApplicationDbContext DbContext
+@inject AuthenticationStateProvider AuthStateProvider
+@inject UserManager<ApplicationUser> UserManager
+@attribute [Authorize]
+
+<PageTitle>Рейтинг Группы</PageTitle>
+
+<div class="container-fluid">
+    <h2 class="mb-4">Рейтинг Студентов в Группе</h2>
+
+    @if (isLoading)
+    {
+        <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+    }
+    else if (!isStudent)
+    {
+        <RadzenAlert AlertStyle="AlertStyle.Warning" Text="Доступно только студентам." />
+    }
+    else
+    {
+        <RadzenCard class="rz-card">
+            <RadzenDataGrid Data="@ranking" TItem="StudentRankingDto" AllowPaging="true" PageSize="15" class="bg-transparent text-light">
+                <Columns>
+                    <RadzenDataGridColumn TItem="StudentRankingDto" Property="Position" Title="Место" Width="100px">
+                        <Template Context="student">
+                            @if (student.Position == 1)
+                            {
+                                <span class="badge bg-warning text-dark"><RadzenIcon Icon="emoji_events" /> 1</span>
+                            }
+                            else if (student.Position == 2)
+                            {
+                                <span class="badge bg-secondary"><RadzenIcon Icon="emoji_events" /> 2</span>
+                            }
+                            else if (student.Position == 3)
+                            {
+                                <span class="badge" style="background-color: #cd7f32;"><RadzenIcon Icon="emoji_events" /> 3</span>
+                            }
+                            else
+                            {
+                                <span>@student.Position</span>
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="StudentRankingDto" Property="FullName" Title="Студент">
+                        <Template Context="student">
+                            @if (student.StudentId == studentId)
+                            {
+                                <span class="text-success fw-bold">@student.FullName (Вы)</span>
+                            }
+                            else
+                            {
+                                @student.FullName
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="StudentRankingDto" Property="AverageScore" Title="Средний балл" />
+                    <RadzenDataGridColumn TItem="StudentRankingDto" Property="GradeCount" Title="Кол-во оценок" />
+                </Columns>
+            </RadzenDataGrid>
+        </RadzenCard>
+    }
+</div>
+
+@code {
+    private bool isLoading = true;
+    private bool isStudent = false;
+    private int studentId;
+    
+    private List<StudentRankingDto> ranking = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var appUser = await UserManager.GetUserAsync(user);
+            if (appUser != null)
+            {
+                var student = await DbContext.Students.FirstOrDefaultAsync(s => s.ApplicationUserId == appUser.Id);
+                if (student != null)
+                {
+                    isStudent = true;
+                    studentId = student.Id;
+                    ranking = await RankingService.GetStudentGroupRankingAsync(student.GroupId);
+                }
+            }
+        }
+        isLoading = false;
+    }
+}

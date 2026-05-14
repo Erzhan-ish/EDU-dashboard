@@ -1,0 +1,108 @@
+@page "/student-schedule"
+@using AcademicPerformanceDashboard.Services
+@using AcademicPerformanceDashboard.Models
+@using AcademicPerformanceDashboard.Data
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@inject ScheduleService ScheduleService
+@inject ApplicationDbContext DbContext
+@inject AuthenticationStateProvider AuthStateProvider
+@inject UserManager<ApplicationUser> UserManager
+@attribute [Authorize]
+
+<PageTitle>Расписание</PageTitle>
+
+<div class="container-fluid">
+    <h2 class="mb-4">Расписание Занятий</h2>
+
+    @if (isLoading)
+    {
+        <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+    }
+    else if (!isStudent)
+    {
+        <RadzenAlert AlertStyle="AlertStyle.Warning" Text="Доступно только студентам." />
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (var day in Enum.GetValues<DayOfWeek>().Where(d => d != DayOfWeek.Sunday))
+            {
+                var dayItems = schedule.Where(s => s.DayOfWeek == day).ToList();
+                <div class="col-md-6 col-lg-4">
+                    <RadzenCard class="rz-card h-100">
+                        <h4 class="mb-3 text-info">@GetRussianDayOfWeek(day)</h4>
+                        @if (dayItems.Count == 0)
+                        {
+                            <p class="text-muted">Нет занятий</p>
+                        }
+                        else
+                        {
+                            <RadzenTimeline>
+                                @foreach (var item in dayItems)
+                                {
+                                    <RadzenTimelineItem PointStyle="PointStyle.Info">
+                                        <LabelContent>
+                                            <div class="text-muted" style="font-size: 0.9rem;">
+                                                @item.StartTime.ToString(@"hh\:mm")<br/>
+                                                @item.EndTime.ToString(@"hh\:mm")
+                                            </div>
+                                        </LabelContent>
+                                        <ChildContent>
+                                            <div class="fw-bold">@item.Subject.Name</div>
+                                            <div style="font-size: 0.85rem;" class="text-muted">
+                                                <RadzenIcon Icon="room" style="font-size: 1rem; margin-bottom: 2px;" /> @item.Classroom<br/>
+                                                <RadzenIcon Icon="person" style="font-size: 1rem; margin-bottom: 2px;" /> @item.Teacher.FullName
+                                            </div>
+                                        </ChildContent>
+                                    </RadzenTimelineItem>
+                                }
+                            </RadzenTimeline>
+                        }
+                    </RadzenCard>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private bool isLoading = true;
+    private bool isStudent = false;
+    private List<ScheduleItem> schedule = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var appUser = await UserManager.GetUserAsync(user);
+            if (appUser != null)
+            {
+                var student = await DbContext.Students.FirstOrDefaultAsync(s => s.ApplicationUserId == appUser.Id);
+                if (student != null)
+                {
+                    isStudent = true;
+                    schedule = await ScheduleService.GetWeeklyScheduleAsync(student.GroupId);
+                }
+            }
+        }
+        isLoading = false;
+    }
+
+    private string GetRussianDayOfWeek(DayOfWeek day)
+    {
+        return day switch
+        {
+            DayOfWeek.Monday => "Понедельник",
+            DayOfWeek.Tuesday => "Вторник",
+            DayOfWeek.Wednesday => "Среда",
+            DayOfWeek.Thursday => "Четверг",
+            DayOfWeek.Friday => "Пятница",
+            DayOfWeek.Saturday => "Суббота",
+            _ => day.ToString()
+        };
+    }
+}

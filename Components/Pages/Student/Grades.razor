@@ -1,0 +1,106 @@
+@page "/student-grades"
+@using AcademicPerformanceDashboard.Services
+@using AcademicPerformanceDashboard.Models
+@using AcademicPerformanceDashboard.Data
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@inject GradeService GradeService
+@inject ApplicationDbContext DbContext
+@inject AuthenticationStateProvider AuthStateProvider
+@inject UserManager<ApplicationUser> UserManager
+@attribute [Authorize]
+
+<PageTitle>Мои Оценки</PageTitle>
+
+<div class="container-fluid">
+    <h2 class="mb-4">Мои Оценки</h2>
+
+    @if (isLoading)
+    {
+        <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+    }
+    else if (!isStudent)
+    {
+        <RadzenAlert AlertStyle="AlertStyle.Warning" Text="Доступно только студентам." />
+    }
+    else
+    {
+        <RadzenCard class="rz-card mb-4">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <RadzenDropDown AllowClear="true" TValue="int?" Class="w-100" 
+                                    Data="@subjects" TextProperty="Name" ValueProperty="Id"
+                                    Placeholder="Все предметы" Change="@(args => OnSubjectChanged(args))" />
+                </div>
+            </div>
+        </RadzenCard>
+
+        <RadzenCard class="rz-card">
+            <RadzenDataGrid Data="@grades" TItem="Grade" AllowPaging="true" PageSize="10" AllowSorting="true" class="bg-transparent text-light">
+                <Columns>
+                    <RadzenDataGridColumn TItem="Grade" Property="Subject.Name" Title="Предмет" Sortable="true" />
+                    <RadzenDataGridColumn TItem="Grade" Property="Value" Title="Оценка" Sortable="true">
+                        <Template Context="grade">
+                            <RadzenBadge BadgeStyle="@GetBadgeStyle(grade.Value)" Text="@grade.Value.ToString()" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="Grade" Property="Date" Title="Дата" FormatString="{0:d}" Sortable="true" />
+                    <RadzenDataGridColumn TItem="Grade" Property="Teacher.FullName" Title="Преподаватель" Sortable="true" />
+                </Columns>
+            </RadzenDataGrid>
+        </RadzenCard>
+    }
+</div>
+
+@code {
+    private bool isLoading = true;
+    private bool isStudent = false;
+    private int studentId;
+    private int? selectedSubjectId;
+    
+    private List<Grade> grades = new();
+    private List<Subject> subjects = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var appUser = await UserManager.GetUserAsync(user);
+            if (appUser != null)
+            {
+                var student = await DbContext.Students.FirstOrDefaultAsync(s => s.ApplicationUserId == appUser.Id);
+                if (student != null)
+                {
+                    isStudent = true;
+                    studentId = student.Id;
+
+                    subjects = await DbContext.Subjects.OrderBy(s => s.Name).ToListAsync();
+                    await LoadGrades();
+                }
+            }
+        }
+        isLoading = false;
+    }
+
+    private async Task LoadGrades()
+    {
+        grades = await GradeService.GetGradesByStudentAsync(studentId, selectedSubjectId);
+    }
+
+    private async Task OnSubjectChanged(object value)
+    {
+        selectedSubjectId = value as int?;
+        await LoadGrades();
+    }
+
+    private BadgeStyle GetBadgeStyle(int value)
+    {
+        if (value >= 80) return BadgeStyle.Success;
+        if (value >= 60) return BadgeStyle.Info;
+        if (value >= 40) return BadgeStyle.Warning;
+        return BadgeStyle.Danger;
+    }
+}

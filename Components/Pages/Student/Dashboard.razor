@@ -1,0 +1,236 @@
+@page "/student-dashboard"
+@using AcademicPerformanceDashboard.Services
+@using AcademicPerformanceDashboard.DTOs
+@using AcademicPerformanceDashboard.Models
+@using AcademicPerformanceDashboard.Data
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@inject StudentAnalyticsService AnalyticsService
+@inject ScheduleService ScheduleService
+@inject GradeService GradeService
+@inject ApplicationDbContext DbContext
+@inject AuthenticationStateProvider AuthStateProvider
+@inject UserManager<ApplicationUser> UserManager
+@attribute [Authorize]
+
+<PageTitle>Dashboard Студента</PageTitle>
+
+@if (isLoading)
+{
+    <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+}
+else if (!isStudent)
+{
+    <RadzenAlert AlertStyle="AlertStyle.Warning" Text="Вы не зарегистрированы как студент. Этот дашборд доступен только студентам." />
+}
+else
+{
+    <div class="container-fluid">
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <h2 class="mb-0">Привет, @studentName!</h2>
+                <p class="text-muted">Твой академический прогресс и расписание.</p>
+            </div>
+        </div>
+
+        <div class="row mb-4 g-3">
+            <div class="col-12 col-sm-6 col-xl-2">
+                <RadzenCard class="rz-card text-center">
+                    <div class="stat-title">Ср. балл</div>
+                    <div class="stat-value">@dashboardData.AverageScore</div>
+                </RadzenCard>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-2">
+                <RadzenCard class="rz-card text-center">
+                    <div class="stat-title">Место в группе</div>
+                    <div class="stat-value">@dashboardData.PositionInGroup / @dashboardData.TotalStudentsInGroup</div>
+                </RadzenCard>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+                <RadzenCard class="rz-card text-center">
+                    <div class="stat-title">Предметов</div>
+                    <div class="stat-value">@dashboardData.SubjectCount</div>
+                </RadzenCard>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-5">
+                <RadzenCard class="rz-card">
+                    <div class="row text-center">
+                        <div class="col-6 border-end border-secondary">
+                            <div class="stat-title">Лучший</div>
+                            <div class="text-success fw-bold mt-2" style="font-size:1.2rem;">@dashboardData.BestSubject</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="stat-title">Слабый</div>
+                            <div class="text-danger fw-bold mt-2" style="font-size:1.2rem;">@dashboardData.WeakestSubject</div>
+                        </div>
+                    </div>
+                </RadzenCard>
+            </div>
+        </div>
+
+        <div class="row mb-4 g-4">
+            <!-- Рост / Падение -->
+            <div class="col-md-4">
+                <RadzenCard class="rz-card h-100">
+                    <h4 class="mb-4">Где ты растешь / где падаешь</h4>
+                    @if (dashboardData.Progress.Count == 0)
+                    {
+                        <p class="text-muted">Нет данных для сравнения за последние 2 месяца.</p>
+                    }
+                    else
+                    {
+                        <ul class="list-group list-group-flush bg-transparent">
+                            @foreach (var p in dashboardData.Progress.OrderByDescending(p => p.Difference))
+                            {
+                                <li class="list-group-item bg-transparent text-light d-flex justify-content-between align-items-center border-secondary">
+                                    @p.SubjectName
+                                    @if (p.Difference > 0)
+                                    {
+                                        <span class="growth-positive">
+                                            <RadzenIcon Icon="trending_up" class="me-1" />
+                                            +@Math.Round(p.Difference, 1) балла
+                                        </span>
+                                    }
+                                    else if (p.Difference < 0)
+                                    {
+                                        <span class="growth-negative">
+                                            <RadzenIcon Icon="trending_down" class="me-1" />
+                                            @Math.Round(p.Difference, 1) балла
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="growth-neutral">
+                                            <RadzenIcon Icon="trending_flat" class="me-1" />
+                                            без изменений
+                                        </span>
+                                    }
+                                </li>
+                            }
+                        </ul>
+                    }
+                </RadzenCard>
+            </div>
+
+            <!-- График успеваемости -->
+            <div class="col-md-8">
+                <RadzenCard class="rz-card h-100">
+                    <h4 class="mb-4">Динамика среднего балла</h4>
+                    <RadzenChart ColorScheme="ColorScheme.Monochrome">
+                        <RadzenLineSeries Smooth="true" Data="@timelineData" CategoryProperty="Key" Title="Ср. балл" ValueProperty="Value">
+                            <RadzenMarkers MarkerType="MarkerType.Circle" />
+                        </RadzenLineSeries>
+                        <RadzenCategoryAxis Padding="20" />
+                        <RadzenValueAxis>
+                            <RadzenGridLines Visible="true" />
+                        </RadzenValueAxis>
+                    </RadzenChart>
+                </RadzenCard>
+            </div>
+        </div>
+
+        <div class="row mb-4 g-4">
+            <!-- Таблица оценок -->
+            <div class="col-md-8">
+                <RadzenCard class="rz-card h-100">
+                    <h4 class="mb-4">Последние оценки</h4>
+                    <RadzenDataGrid Data="@recentGrades" TItem="Grade" AllowPaging="true" PageSize="5" class="bg-transparent text-light">
+                        <Columns>
+                            <RadzenDataGridColumn TItem="Grade" Property="Subject.Name" Title="Предмет" />
+                            <RadzenDataGridColumn TItem="Grade" Property="Value" Title="Оценка">
+                                <Template Context="grade">
+                                    <RadzenBadge BadgeStyle="@GetBadgeStyle(grade.Value)" Text="@grade.Value.ToString()" />
+                                </Template>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="Grade" Property="Date" Title="Дата" FormatString="{0:d}" />
+                            <RadzenDataGridColumn TItem="Grade" Property="Teacher.FullName" Title="Преподаватель" />
+                        </Columns>
+                    </RadzenDataGrid>
+                </RadzenCard>
+            </div>
+
+            <!-- Расписание -->
+            <div class="col-md-4">
+                <RadzenCard class="rz-card h-100">
+                    <h4 class="mb-4">Расписание на сегодня</h4>
+                    @if (todaySchedule.Count == 0)
+                    {
+                        <p class="text-muted">На сегодня занятий нет. Отдыхай!</p>
+                    }
+                    else
+                    {
+                        <RadzenTimeline>
+                            @foreach (var item in todaySchedule)
+                            {
+                                <RadzenTimelineItem PointStyle="PointStyle.Info">
+                                    <LabelContent>
+                                        <div class="text-muted" style="font-size: 0.9rem;">
+                                            @item.StartTime.ToString(@"hh\:mm") - @item.EndTime.ToString(@"hh\:mm")
+                                        </div>
+                                    </LabelContent>
+                                    <ChildContent>
+                                        <div class="fw-bold">@item.Subject.Name</div>
+                                        <div style="font-size: 0.85rem;" class="text-muted">
+                                            @item.Classroom<br/>
+                                            @item.Teacher.FullName
+                                        </div>
+                                    </ChildContent>
+                                </RadzenTimelineItem>
+                            }
+                        </RadzenTimeline>
+                    }
+                </RadzenCard>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool isLoading = true;
+    private bool isStudent = false;
+    private string studentName = "";
+    private int studentId;
+    
+    private StudentDashboardDto dashboardData = new();
+    private List<KeyValuePair<string, double>> timelineData = new();
+    private List<Grade> recentGrades = new();
+    private List<ScheduleItem> todaySchedule = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var appUser = await UserManager.GetUserAsync(user);
+            if (appUser != null)
+            {
+                var student = await DbContext.Students.FirstOrDefaultAsync(s => s.ApplicationUserId == appUser.Id);
+                if (student != null)
+                {
+                    isStudent = true;
+                    studentName = student.FullName;
+                    studentId = student.Id;
+
+                    dashboardData = await AnalyticsService.GetStudentDashboardDataAsync(student.Id);
+                    
+                    var timelineDict = await AnalyticsService.GetSubjectAveragesTimelineAsync(student.Id);
+                    timelineData = timelineDict.ToList();
+                    
+                    recentGrades = await GradeService.GetGradesByStudentAsync(student.Id);
+                    todaySchedule = await ScheduleService.GetTodayScheduleAsync(student.GroupId);
+                }
+            }
+        }
+        isLoading = false;
+    }
+
+    private BadgeStyle GetBadgeStyle(int value)
+    {
+        if (value >= 80) return BadgeStyle.Success;
+        if (value >= 60) return BadgeStyle.Info;
+        if (value >= 40) return BadgeStyle.Warning;
+        return BadgeStyle.Danger;
+    }
+}

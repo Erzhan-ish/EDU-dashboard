@@ -1,0 +1,168 @@
+@page "/teacher-dashboard"
+@using AcademicPerformanceDashboard.Services
+@using AcademicPerformanceDashboard.Models
+@using AcademicPerformanceDashboard.Data
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext DbContext
+@inject AuthenticationStateProvider AuthStateProvider
+@inject UserManager<ApplicationUser> UserManager
+@attribute [Authorize]
+
+<PageTitle>Дашборд Преподавателя</PageTitle>
+
+<div class="container-fluid">
+    @if (isLoading)
+    {
+        <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+    }
+    else if (!isTeacher)
+    {
+        <RadzenAlert AlertStyle="AlertStyle.Warning" Text="Вы не зарегистрированы как преподаватель. Этот дашборд доступен только преподавателям." />
+    }
+    else
+    {
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-0">Здравствуйте, @teacherName!</h2>
+                        <p class="text-muted">Аналитика по вашим группам.</p>
+                    </div>
+                    <RadzenButton Text="Управление Оценками" ButtonStyle="ButtonStyle.Primary" Click=@(() => NavigationManager.NavigateTo("teacher-grades")) />
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            @foreach (var g in groupStats)
+            {
+                <div class="col-md-4">
+                    <RadzenCard class="rz-card text-center">
+                        <h4 class="mb-2">@g.GroupName</h4>
+                        <div class="stat-title">Средний балл</div>
+                        <div class="stat-value">@Math.Round(g.AverageScore, 1)</div>
+                        <div class="text-muted mt-2">@g.StudentCount студентов</div>
+                    </RadzenCard>
+                </div>
+            }
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-6">
+                <RadzenCard class="rz-card h-100">
+                    <h4 class="mb-4 text-warning">Студенты с низкой успеваемостью</h4>
+                    <RadzenDataGrid Data="@weakStudents" TItem="dynamic" AllowPaging="true" PageSize="5" class="bg-transparent text-light">
+                        <Columns>
+                            <RadzenDataGridColumn TItem="dynamic" Property="StudentName" Title="Студент" />
+                            <RadzenDataGridColumn TItem="dynamic" Property="GroupName" Title="Группа" />
+                            <RadzenDataGridColumn TItem="dynamic" Property="AverageScore" Title="Ср. балл">
+                                <Template Context="data">
+                                    <span class="text-danger fw-bold">@Math.Round(data.AverageScore, 1)</span>
+                                </Template>
+                            </RadzenDataGridColumn>
+                        </Columns>
+                    </RadzenDataGrid>
+                </RadzenCard>
+            </div>
+            <div class="col-md-6">
+                <RadzenCard class="rz-card h-100">
+                    <h4 class="mb-4">Последние выставленные оценки</h4>
+                    <RadzenDataGrid Data="@recentGrades" TItem="Grade" AllowPaging="true" PageSize="5" class="bg-transparent text-light">
+                        <Columns>
+                            <RadzenDataGridColumn TItem="Grade" Property="Student.FullName" Title="Студент" />
+                            <RadzenDataGridColumn TItem="Grade" Property="Subject.Name" Title="Предмет" />
+                            <RadzenDataGridColumn TItem="Grade" Property="Value" Title="Оценка">
+                                <Template Context="grade">
+                                    <RadzenBadge BadgeStyle="@(grade.Value >= 60 ? BadgeStyle.Success : BadgeStyle.Danger)" Text="@grade.Value.ToString()" />
+                                </Template>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="Grade" Property="Date" Title="Дата" FormatString="{0:d}" />
+                        </Columns>
+                    </RadzenDataGrid>
+                </RadzenCard>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Inject] NavigationManager NavigationManager { get; set; } = null!;
+
+    private bool isLoading = true;
+    private bool isTeacher = false;
+    private string teacherName = "";
+    
+    private List<GroupStat> groupStats = new();
+    private List<dynamic> weakStudents = new();
+    private List<Grade> recentGrades = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var appUser = await UserManager.GetUserAsync(user);
+            if (appUser != null)
+            {
+                var teacher = await DbContext.Teachers.FirstOrDefaultAsync(t => t.ApplicationUserId == appUser.Id);
+                if (teacher != null)
+                {
+                    isTeacher = true;
+                    teacherName = teacher.FullName;
+
+                    // Fetch associated groups
+                    var groups = await DbContext.TeacherSubjectGroups
+                        .Where(tsg => tsg.TeacherId == teacher.Id)
+                        .Select(tsg => tsg.Group)
+                        .Distinct()
+                        .ToListAsync();
+
+                    var allGradesForTeacher = await DbContext.Grades
+                        .Include(g => g.Student)
+                        .ThenInclude(s => s.Group)
+                        .Include(g => g.Subject)
+                        .Where(g => g.TeacherId == teacher.Id)
+                        .ToListAsync();
+
+                    foreach (var g in groups)
+                    {
+                        var gradesForGroup = allGradesForTeacher.Where(grade => grade.Student.GroupId == g.Id).ToList();
+                        var stdCount = await DbContext.Students.CountAsync(s => s.GroupId == g.Id);
+                        groupStats.Add(new GroupStat
+                        {
+                            GroupName = g.Name,
+                            StudentCount = stdCount,
+                            AverageScore = gradesForGroup.Count > 0 ? gradesForGroup.Average(x => x.Value) : 0
+                        });
+                    }
+
+                    // Weak students (< 60)
+                    var studentAverages = allGradesForTeacher.GroupBy(g => g.Student)
+                        .Select(g => new { Student = g.Key, Avg = g.Average(x => x.Value) })
+                        .Where(x => x.Avg < 60)
+                        .OrderBy(x => x.Avg)
+                        .Take(10)
+                        .ToList();
+
+                    foreach (var sa in studentAverages)
+                    {
+                        weakStudents.Add(new { StudentName = sa.Student.FullName, GroupName = sa.Student.Group.Name, AverageScore = sa.Avg });
+                    }
+
+                    recentGrades = allGradesForTeacher.OrderByDescending(g => g.Date).Take(10).ToList();
+                }
+            }
+        }
+        isLoading = false;
+    }
+
+    private class GroupStat
+    {
+        public string GroupName { get; set; } = string.Empty;
+        public int StudentCount { get; set; }
+        public double AverageScore { get; set; }
+    }
+}

@@ -1,0 +1,220 @@
+@page "/teacher-grades"
+@using AcademicPerformanceDashboard.Services
+@using AcademicPerformanceDashboard.Models
+@using AcademicPerformanceDashboard.Data
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@inject GradeService GradeService
+@inject ApplicationDbContext DbContext
+@inject AuthenticationStateProvider AuthStateProvider
+@inject UserManager<ApplicationUser> UserManager
+@inject Radzen.DialogService DialogService
+@inject Radzen.NotificationService NotificationService
+@attribute [Authorize]
+
+<PageTitle>Управление Оценками</PageTitle>
+
+<div class="container-fluid">
+    <h2 class="mb-4">Управление Оценками</h2>
+
+    @if (isLoading)
+    {
+        <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+    }
+    else if (!isTeacher)
+    {
+        <RadzenAlert AlertStyle="AlertStyle.Warning" Text="Доступно только преподавателям." />
+    }
+    else
+    {
+        <RadzenCard class="rz-card mb-4">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <RadzenLabel Text="Группа" />
+                    <RadzenDropDown TValue="int?" Data="@teacherGroups" TextProperty="Name" ValueProperty="Id" Class="w-100"
+                                    Change="@(args => OnGroupChanged(args))" Placeholder="Выберите группу" />
+                </div>
+                <div class="col-md-3">
+                    <RadzenLabel Text="Предмет" />
+                    <RadzenDropDown TValue="int?" Data="@teacherSubjects" TextProperty="Name" ValueProperty="Id" Class="w-100"
+                                    Change="@(args => OnSubjectChanged(args))" Placeholder="Выберите предмет" Disabled="@(selectedGroupId == null)" />
+                </div>
+                <div class="col-md-4">
+                    <RadzenLabel Text="Студент" />
+                    <RadzenDropDown TValue="int?" Data="@students" TextProperty="FullName" ValueProperty="Id" Class="w-100"
+                                    Change="@(args => OnStudentChanged(args))" Placeholder="Выберите студента" Disabled="@(selectedSubjectId == null)" />
+                </div>
+            </div>
+        </RadzenCard>
+
+        @if (selectedStudentId != null && selectedSubjectId != null)
+        {
+            <RadzenCard class="rz-card mb-4">
+                <h4 class="mb-3">Новая оценка</h4>
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <RadzenLabel Text="Оценка (0-100)" />
+                        <RadzenNumeric TValue="int" @bind-Value="newGradeValue" Min="0" Max="100" Class="w-100" />
+                    </div>
+                    <div class="col-md-6">
+                        <RadzenLabel Text="Комментарий (необязательно)" />
+                        <RadzenTextBox @bind-Value="newGradeComment" Class="w-100" />
+                    </div>
+                    <div class="col-md-3">
+                        <RadzenButton Text="Добавить Оценку" ButtonStyle="ButtonStyle.Success" Click=@AddGrade Class="w-100" />
+                    </div>
+                </div>
+            </RadzenCard>
+
+            <RadzenCard class="rz-card">
+                <h4 class="mb-3">История оценок студента по предмету</h4>
+                <RadzenDataGrid Data="@studentGrades" TItem="Grade" AllowPaging="true" PageSize="5" class="bg-transparent text-light">
+                    <Columns>
+                        <RadzenDataGridColumn TItem="Grade" Property="Value" Title="Оценка">
+                            <Template Context="grade">
+                                <RadzenBadge BadgeStyle="@(grade.Value >= 60 ? BadgeStyle.Success : BadgeStyle.Danger)" Text="@grade.Value.ToString()" />
+                            </Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="Grade" Property="Date" Title="Дата" FormatString="{0:d}" />
+                        <RadzenDataGridColumn TItem="Grade" Property="Comment" Title="Комментарий" />
+                        <RadzenDataGridColumn TItem="Grade" Context="grade" Filterable="false" Sortable="false" TextAlign="TextAlign.Center" Width="100px">
+                            <Template Context="grade">
+                                <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete" Size="ButtonSize.Small" Click=@(args => DeleteGrade(grade)) @onclick:stopPropagation="true" />
+                            </Template>
+                        </RadzenDataGridColumn>
+                    </Columns>
+                </RadzenDataGrid>
+            </RadzenCard>
+        }
+    }
+</div>
+
+@code {
+    private bool isLoading = true;
+    private bool isTeacher = false;
+    private int teacherId;
+
+    private List<AcademicPerformanceDashboard.Models.Group> teacherGroups = new();
+    private List<Subject> teacherSubjects = new();
+    private List<Student> students = new();
+    private List<Grade> studentGrades = new();
+
+    private int? selectedGroupId;
+    private int? selectedSubjectId;
+    private int? selectedStudentId;
+
+    private int newGradeValue = 0;
+    private string newGradeComment = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var appUser = await UserManager.GetUserAsync(user);
+            if (appUser != null)
+            {
+                var teacher = await DbContext.Teachers.FirstOrDefaultAsync(t => t.ApplicationUserId == appUser.Id);
+                if (teacher != null)
+                {
+                    isTeacher = true;
+                    teacherId = teacher.Id;
+
+                    teacherGroups = await DbContext.TeacherSubjectGroups
+                        .Where(tsg => tsg.TeacherId == teacherId)
+                        .Select(tsg => tsg.Group)
+                        .Distinct()
+                        .ToListAsync();
+                }
+            }
+        }
+        isLoading = false;
+    }
+
+    private async Task OnGroupChanged(object value)
+    {
+        selectedGroupId = value as int?;
+        selectedSubjectId = null;
+        selectedStudentId = null;
+        teacherSubjects.Clear();
+        students.Clear();
+        studentGrades.Clear();
+
+        if (selectedGroupId != null)
+        {
+            teacherSubjects = await DbContext.TeacherSubjectGroups
+                .Where(tsg => tsg.TeacherId == teacherId && tsg.GroupId == selectedGroupId)
+                .Select(tsg => tsg.Subject)
+                .Distinct()
+                .ToListAsync();
+        }
+    }
+
+    private async Task OnSubjectChanged(object value)
+    {
+        selectedSubjectId = value as int?;
+        selectedStudentId = null;
+        students.Clear();
+        studentGrades.Clear();
+
+        if (selectedSubjectId != null && selectedGroupId != null)
+        {
+            students = await DbContext.Students
+                .Where(s => s.GroupId == selectedGroupId)
+                .OrderBy(s => s.FullName)
+                .ToListAsync();
+        }
+    }
+
+    private async Task OnStudentChanged(object value)
+    {
+        selectedStudentId = value as int?;
+        await LoadStudentGrades();
+    }
+
+    private async Task LoadStudentGrades()
+    {
+        if (selectedStudentId != null && selectedSubjectId != null)
+        {
+            studentGrades = await DbContext.Grades
+                .Where(g => g.StudentId == selectedStudentId && g.SubjectId == selectedSubjectId)
+                .OrderByDescending(g => g.Date)
+                .ToListAsync();
+        }
+        else
+        {
+            studentGrades.Clear();
+        }
+    }
+
+    private async Task AddGrade()
+    {
+        if (selectedStudentId == null || selectedSubjectId == null) return;
+
+        var grade = new Grade
+        {
+            StudentId = selectedStudentId.Value,
+            SubjectId = selectedSubjectId.Value,
+            TeacherId = teacherId,
+            Value = newGradeValue,
+            Date = DateTime.Now,
+            Comment = string.IsNullOrWhiteSpace(newGradeComment) ? null : newGradeComment
+        };
+
+        await GradeService.CreateGradeAsync(grade);
+        newGradeValue = 0;
+        newGradeComment = "";
+        
+        NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Success, Summary = "Успешно", Detail = "Оценка добавлена" });
+        await LoadStudentGrades();
+    }
+
+    private async Task DeleteGrade(Grade grade)
+    {
+        await GradeService.DeleteGradeAsync(grade.Id);
+        NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Info, Summary = "Удалено", Detail = "Оценка удалена" });
+        await LoadStudentGrades();
+    }
+}

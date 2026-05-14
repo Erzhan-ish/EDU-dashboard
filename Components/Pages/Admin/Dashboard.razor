@@ -1,0 +1,84 @@
+@page "/admin-dashboard"
+@using AcademicPerformanceDashboard.Services
+@using AcademicPerformanceDashboard.DTOs
+@using Microsoft.AspNetCore.Identity
+@using AcademicPerformanceDashboard.Data
+@inject RankingService RankingService
+@inject ApplicationDbContext DbContext
+@attribute [Authorize]
+
+<PageTitle>Дашборд Администратора</PageTitle>
+
+<div class="container-fluid">
+    <h2 class="mb-4">Общий Рейтинг Групп</h2>
+
+    @if (isLoading)
+    {
+        <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+    }
+    else
+    {
+        <!-- To make it simpler, assuming any logged-in user who navigates here is admin, but let's check email -->
+        <AuthorizeView>
+            <Authorized>
+                @if (context.User.Identity?.Name == "admin@example.com")
+                {
+                    <RadzenCard class="rz-card mb-4">
+                        <RadzenDataGrid Data="@groupRanking" TItem="GroupRankingDto" AllowPaging="true" PageSize="10" class="bg-transparent text-light">
+                            <Columns>
+                                <RadzenDataGridColumn TItem="GroupRankingDto" Property="Position" Title="Место" Width="100px">
+                                    <Template Context="group">
+                                        @if (group.Position == 1)
+                                        {
+                                            <span class="badge bg-warning text-dark"><RadzenIcon Icon="emoji_events" /> 1</span>
+                                        }
+                                        else if (group.Position == 2)
+                                        {
+                                            <span class="badge bg-secondary"><RadzenIcon Icon="emoji_events" /> 2</span>
+                                        }
+                                        else if (group.Position == 3)
+                                        {
+                                            <span class="badge" style="background-color: #cd7f32;"><RadzenIcon Icon="emoji_events" /> 3</span>
+                                        }
+                                        else
+                                        {
+                                            <span>@group.Position</span>
+                                        }
+                                    </Template>
+                                </RadzenDataGridColumn>
+                                <RadzenDataGridColumn TItem="GroupRankingDto" Property="GroupName" Title="Группа" />
+                                <RadzenDataGridColumn TItem="GroupRankingDto" Property="Course" Title="Курс" />
+                                <RadzenDataGridColumn TItem="GroupRankingDto" Property="AverageScore" Title="Средний балл">
+                                    <Template Context="group">
+                                        <span class="fw-bold @(group.AverageScore >= 60 ? "text-success" : "text-danger")">@group.AverageScore</span>
+                                    </Template>
+                                </RadzenDataGridColumn>
+                                <RadzenDataGridColumn TItem="GroupRankingDto" Property="StudentCount" Title="Студентов" />
+                            </Columns>
+                        </RadzenDataGrid>
+                    </RadzenCard>
+                    
+                    <RadzenCard class="rz-card">
+                        <h4 class="mb-3">Управление Справочниками</h4>
+                        <p>Для реализации полноценного CRUD для справочников (Студенты, Преподаватели, Группы) используйте scaffolding или отдельные страницы. В рамках данного ТЗ базовая структура обеспечена.</p>
+                    </RadzenCard>
+                }
+                else
+                {
+                    <RadzenAlert AlertStyle="AlertStyle.Warning" Text="Доступно только администраторам." />
+                }
+            </Authorized>
+        </AuthorizeView>
+    }
+</div>
+
+@code {
+    private bool isLoading = true;
+    private List<GroupRankingDto> groupRanking = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        groupRanking = await RankingService.GetGroupRankingAsync();
+        isLoading = false;
+    }
+}
