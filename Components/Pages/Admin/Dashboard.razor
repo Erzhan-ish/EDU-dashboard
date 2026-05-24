@@ -30,195 +30,393 @@
             <Authorized>
                 @if (context.User.Identity?.Name == "admin@example.com")
                 {
-                    <div class="dashboard-grid-middle">
-                        <!-- Group Ranking -->
-                        <div class="dashboard-card">
-                            <h2 class="dashboard-card-title">Общий Рейтинг Групп</h2>
-                            <RadzenDataGrid Data="@groupRanking" TItem="GroupRankingDto" AllowPaging="true" PageSize="5" class="bg-transparent text-light" RowSelect="@OnGroupSelect">
-                                <Columns>
-                                    <RadzenDataGridColumn TItem="GroupRankingDto" Property="Position" Title="Место" Width="80px">
-                                        <Template Context="group">
-                                            @if (group.Position == 1)
-                                            {
-                                                <span class="badge bg-warning text-dark">🥇 1</span>
-                                            }
-                                            else if (group.Position == 2)
-                                            {
-                                                <span class="badge bg-secondary">🥈 2</span>
-                                            }
-                                            else if (group.Position == 3)
-                                            {
-                                                <span class="badge" style="background-color: #cd7f32;">🥉 3</span>
-                                            }
-                                            else
-                                            {
-                                                <span>@group.Position</span>
-                                            }
-                                        </Template>
-                                    </RadzenDataGridColumn>
-                                    <RadzenDataGridColumn TItem="GroupRankingDto" Property="GroupName" Title="Группа" />
-                                    <RadzenDataGridColumn TItem="GroupRankingDto" Property="AverageScore" Title="Ср. балл">
-                                        <Template Context="group">
-                                            <span class="fw-bold @(group.AverageScore >= 60 ? "positive" : "negative")">@group.AverageScore</span>
-                                        </Template>
-                                    </RadzenDataGridColumn>
-                                </Columns>
-                            </RadzenDataGrid>
-                        </div>
+                    <RadzenTabs RenderMode="TabRenderMode.Client" Class="mt-4">
+                        <Tabs>
+                            <!-- Tab: Analytics & Ranking -->
+                            <RadzenTabsItem Text="Аналитика">
+                                <div class="dashboard-grid-middle mt-3">
+                                    <!-- Group Ranking -->
+                                    <div class="dashboard-card">
+                                        <h2 class="dashboard-card-title">Общий Рейтинг Групп</h2>
+                                        <RadzenDataGrid Data="@groupRanking" TItem="GroupRankingDto" AllowPaging="true" PageSize="5" class="bg-transparent text-light" RowSelect="@OnGroupSelect">
+                                            <Columns>
+                                                <RadzenDataGridColumn TItem="GroupRankingDto" Property="Position" Title="Место" Width="80px">
+                                                    <Template Context="group">
+                                                        @if (group.Position == 1)
+                                                        {
+                                                            <span class="badge bg-warning text-dark">🥇 1</span>
+                                                        }
+                                                        else if (group.Position == 2)
+                                                        {
+                                                            <span class="badge bg-secondary">🥈 2</span>
+                                                        }
+                                                        else if (group.Position == 3)
+                                                        {
+                                                            <span class="badge" style="background-color: #cd7f32;">🥉 3</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span>@group.Position</span>
+                                                        }
+                                                    </Template>
+                                                </RadzenDataGridColumn>
+                                                <RadzenDataGridColumn TItem="GroupRankingDto" Property="GroupName" Title="Группа" />
+                                                <RadzenDataGridColumn TItem="GroupRankingDto" Property="AverageScore" Title="Ср. балл">
+                                                    <Template Context="group">
+                                                        <span class="fw-bold @(group.AverageScore >= 60 ? "positive" : "negative")">@group.AverageScore</span>
+                                                    </Template>
+                                                </RadzenDataGridColumn>
+                                            </Columns>
+                                        </RadzenDataGrid>
+                                    </div>
 
-                        <!-- Create Group Form -->
-                        <div class="dashboard-card">
-                            <h2 class="dashboard-card-title" style="color: #00e676;">Создать Группу</h2>
-                            <div class="row g-3 align-items-end">
-                                <div class="col-md-6">
-                                    <RadzenLabel Text="Название группы" style="color: #8b92a5; font-size: 0.85rem;" />
-                                    <RadzenTextBox @bind-Value="newGroupName" Class="w-100 bg-transparent text-light border-secondary" placeholder="Напр. ИС-21" />
+                                    @if (selectedGroupIdForDetails != 0)
+                                    {
+                                        <div class="dashboard-card">
+                                            <h2 class="dashboard-card-title">Состав группы: @selectedGroupNameForDetails</h2>
+                                            <div class="row g-3">
+                                                <div class="col-md-6">
+                                                    <h3 class="text-light mb-2">Студенты</h3>
+                                                    <RadzenDataGrid Data="@selectedGroupStudents" TItem="Student" AllowPaging="true" PageSize="5" class="bg-transparent text-light">
+                                                        <Columns>
+                                                            <RadzenDataGridColumn TItem="Student" Property="FullName" Title="ФИО" />
+                                                        </Columns>
+                                                    </RadzenDataGrid>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <h3 class="text-light mb-2">Преподаватели</h3>
+                                                    <RadzenDataGrid Data="@selectedGroupTeachers" TItem="TeacherSubjectDto" AllowPaging="true" PageSize="5" class="bg-transparent text-light">
+                                                        <Columns>
+                                                            <RadzenDataGridColumn TItem="TeacherSubjectDto" Property="TeacherName" Title="Имя" />
+                                                            <RadzenDataGridColumn TItem="TeacherSubjectDto" Property="SubjectName" Title="Предмет" />
+                                                        </Columns>
+                                                    </RadzenDataGrid>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
                                 </div>
-                                <div class="col-md-6">
-                                    <RadzenLabel Text="Курс" style="color: #8b92a5; font-size: 0.85rem;" />
-                                    <RadzenNumeric TValue="int" @bind-Value="newGroupCourse" Min="1" Max="6" Class="w-100 bg-transparent text-light border-secondary" />
-                                </div>
-                                <div class="col-md-12 mt-3">
-                                    <RadzenButton Text="Создать Группу" ButtonStyle="ButtonStyle.Success" Click=@CreateGroup Class="w-100" style="background: #00e676; color: #0f121d;" />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                            </RadzenTabsItem>
 
-                    @if (selectedGroupIdForDetails != 0)
-                    {
-                        <div class="dashboard-card mt-4">
-                            <h2 class="dashboard-card-title">Состав группы: @selectedGroupNameForDetails</h2>
-                            
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <h3 class="text-light mb-2">Студенты</h3>
-                                    <RadzenDataGrid Data="@selectedGroupStudents" TItem="Student" AllowPaging="true" PageSize="5" class="bg-transparent text-light">
+                            <!-- Tab: Users Management -->
+                            <RadzenTabsItem Text="Пользователи">
+                                <div class="dashboard-card mt-3">
+                                    <h2 class="dashboard-card-title" style="color: #00e676;">Создать пользователя</h2>
+                                    <div class="row g-3 align-items-end">
+                                        <div class="col-md-3">
+                                            <label class="form-label text-light">Email</label>
+                                            <RadzenTextBox @bind-Value="newUserEmail" Class="w-100" />
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label text-light">Пароль</label>
+                                            <RadzenTextBox @bind-Value="newUserPassword" Class="w-100" />
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label text-light">ФИО</label>
+                                            <RadzenTextBox @bind-Value="newUserFullName" Class="w-100" />
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label text-light">Роль</label>
+                                            <RadzenDropDown @bind-Value="newUserRole" Data="@userRoles" Class="w-100" />
+                                        </div>
+                                        @if (newUserRole == "Студент")
+                                        {
+                                            <div class="col-md-2">
+                                                <label class="form-label text-light">Группа</label>
+                                                <RadzenDropDown @bind-Value="newUserGroupId" Data="@groups" TextProperty="Name" ValueProperty="Id" Class="w-100" />
+                                            </div>
+                                        }
+                                        <div class="col-md-2">
+                                            <RadzenButton Text="Создать" ButtonStyle="ButtonStyle.Success" Click=@CreateUser Class="w-100" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="dashboard-card mt-4">
+                                    <h2 class="dashboard-card-title">Список пользователей</h2>
+                                    <RadzenDataGrid @ref="usersGrid" Data="@allUsers" TItem="UserManagementDto" AllowPaging="true" PageSize="10" 
+                                                    AllowSorting="true" AllowFiltering="true" FilterMode="FilterMode.Simple"
+                                                    class="bg-transparent text-light" RowUpdate="@OnUpdateRowUser">
                                         <Columns>
-                                            <RadzenDataGridColumn TItem="Student" Property="FullName" Title="ФИО" />
+                                            <RadzenDataGridColumn TItem="UserManagementDto" Property="Email" Title="Email" />
+                                            <RadzenDataGridColumn TItem="UserManagementDto" Property="FullName" Title="ФИО">
+                                                <EditTemplate Context="user">
+                                                    <RadzenTextBox @bind-Value="user.FullName" Style="width:100%" />
+                                                </EditTemplate>
+                                            </RadzenDataGridColumn>
+                                            <RadzenDataGridColumn TItem="UserManagementDto" Property="Role" Title="Роль" />
+                                            <RadzenDataGridColumn TItem="UserManagementDto" Property="GroupName" Title="Группа">
+                                                <EditTemplate Context="user">
+                                                    @if (user.Role == "Студент")
+                                                    {
+                                                        <RadzenDropDown @bind-Value="user.GroupId" Data="@groups" TextProperty="Name" ValueProperty="Id" Style="width:100%" />
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>-</span>
+                                                    }
+                                                </EditTemplate>
+                                            </RadzenDataGridColumn>
+                                            <RadzenDataGridColumn TItem="UserManagementDto" Title="Действия" Width="120px" TextAlign="TextAlign.Center">
+                                                <Template Context="user">
+                                                    <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(args => EditRowUser(user))" />
+                                                    <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click=@(() => DeleteUser(user.Id)) />
+                                                </Template>
+                                                <EditTemplate Context="user">
+                                                    <RadzenButton Icon="check" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" Click="@((args) => SaveRowUser(user))" />
+                                                    <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@((args) => CancelEditUser(user))" />
+                                                </EditTemplate>
+                                            </RadzenDataGridColumn>
                                         </Columns>
                                     </RadzenDataGrid>
                                 </div>
-                                <div class="col-md-6">
-                                    <h3 class="text-light mb-2">Преподаватели и Предметы</h3>
-                                    <RadzenDataGrid Data="@selectedGroupTeachers" TItem="TeacherSubjectDto" AllowPaging="true" PageSize="5" class="bg-transparent text-light">
+                            </RadzenTabsItem>
+
+                            <!-- Tab: Groups Management -->
+                            <RadzenTabsItem Text="Группы">
+                                <div class="dashboard-card mt-3">
+                                    <h2 class="dashboard-card-title" style="color: #00e676;">Создать группу</h2>
+                                    <div class="row g-3 align-items-end">
+                                        <div class="col-md-6">
+                                            <RadzenLabel Text="Название группы" />
+                                            <RadzenTextBox @bind-Value="newGroupName" Class="w-100" />
+                                        </div>
+                                        <div class="col-md-4">
+                                            <RadzenLabel Text="Курс" />
+                                            <RadzenNumeric TValue="int" @bind-Value="newGroupCourse" Min="1" Max="6" Class="w-100" />
+                                        </div>
+                                        <div class="col-md-2">
+                                            <RadzenButton Text="Создать" ButtonStyle="ButtonStyle.Success" Click=@CreateGroup Class="w-100" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="dashboard-card mt-4">
+                                    <h2 class="dashboard-card-title">Список групп</h2>
+                                    <RadzenDataGrid @ref="groupsGrid" Data="@groups" TItem="AcademicPerformanceDashboard.Models.Group" AllowPaging="true" PageSize="10" 
+                                                    AllowSorting="true" AllowFiltering="true" FilterMode="FilterMode.Simple"
+                                                    class="bg-transparent text-light" RowUpdate="@OnUpdateRowGroup">
                                         <Columns>
-                                            <RadzenDataGridColumn TItem="TeacherSubjectDto" Property="TeacherName" Title="Преподаватель" />
-                                            <RadzenDataGridColumn TItem="TeacherSubjectDto" Property="SubjectName" Title="Предмет" />
+                                            <RadzenDataGridColumn TItem="AcademicPerformanceDashboard.Models.Group" Property="Name" Title="Название">
+                                                <EditTemplate Context="group">
+                                                    <RadzenTextBox @bind-Value="group.Name" Style="width:100%" />
+                                                </EditTemplate>
+                                            </RadzenDataGridColumn>
+                                            <RadzenDataGridColumn TItem="AcademicPerformanceDashboard.Models.Group" Property="Course" Title="Курс">
+                                                <EditTemplate Context="group">
+                                                    <RadzenNumeric TValue="int" @bind-Value="group.Course" Style="width:100%" />
+                                                </EditTemplate>
+                                            </RadzenDataGridColumn>
+                                            <RadzenDataGridColumn TItem="AcademicPerformanceDashboard.Models.Group" Title="Действия" Width="150px" TextAlign="TextAlign.Center">
+                                                <Template Context="group">
+                                                    <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(args => EditRowGroup(group))" @onclick:stopPropagation="true" />
+                                                    <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click=@(() => DeleteGroup(group.Id)) @onclick:stopPropagation="true" />
+                                                </Template>
+                                                <EditTemplate Context="group">
+                                                    <RadzenButton Icon="check" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" Click="@((args) => SaveRowGroup(group))" />
+                                                    <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@((args) => CancelEditGroup(group))" />
+                                                </EditTemplate>
+                                            </RadzenDataGridColumn>
                                         </Columns>
                                     </RadzenDataGrid>
                                 </div>
-                            </div>
-                        </div>
-                    }
+                            </RadzenTabsItem>
 
-                    <!-- Set Schedule Form -->
-                    <div class="dashboard-card" style="margin-top: 2rem;">
-                        <h2 class="dashboard-card-title" style="color: #4da9ff;">Управление Расписанием</h2>
-                        <div class="row g-3 align-items-end">
-                            <div class="col-md-3">
-                                <RadzenLabel Text="Группа" style="color: #8b92a5; font-size: 0.85rem;" />
-                                <RadzenDropDown TValue="int" Data="@groups" TextProperty="Name" ValueProperty="Id" Class="w-100 bg-transparent text-light border-secondary" @bind-Value="selectedGroupId" Placeholder="Выберите группу" />
-                            </div>
-                            <div class="col-md-3">
-                                <RadzenLabel Text="Предмет" style="color: #8b92a5; font-size: 0.85rem;" />
-                                <RadzenDropDown TValue="int" Data="@subjects" TextProperty="Name" ValueProperty="Id" Class="w-100 bg-transparent text-light border-secondary" @bind-Value="selectedSubjectId" Placeholder="Выберите предмет" />
-                            </div>
-                            <div class="col-md-3">
-                                <RadzenLabel Text="Преподаватель" style="color: #8b92a5; font-size: 0.85rem;" />
-                                <RadzenDropDown TValue="int" Data="@teachers" TextProperty="FullName" ValueProperty="Id" Class="w-100 bg-transparent text-light border-secondary" @bind-Value="selectedTeacherId" Placeholder="Выберите преподавателя" />
-                            </div>
-                            <div class="col-md-3">
-                                <RadzenLabel Text="День недели" style="color: #8b92a5; font-size: 0.85rem;" />
-                                <RadzenDropDown TValue="DayOfWeek" Data="@daysOfWeek" Class="w-100 bg-transparent text-light border-secondary" @bind-Value="selectedDay" />
-                            </div>
-                        </div>
-                        <div class="row g-3 align-items-end mt-2">
-                            <div class="col-md-3">
-                                <RadzenLabel Text="Время начала" style="color: #8b92a5; font-size: 0.85rem;" />
-                                <input type="time" class="form-control bg-transparent text-light border-secondary" @bind="startTime" />
-                            </div>
-                            <div class="col-md-3">
-                                <RadzenLabel Text="Время окончания" style="color: #8b92a5; font-size: 0.85rem;" />
-                                <input type="time" class="form-control bg-transparent text-light border-secondary" @bind="endTime" />
-                            </div>
-                            <div class="col-md-4">
-                                <RadzenLabel Text="Аудитория" style="color: #8b92a5; font-size: 0.85rem;" />
-                                <RadzenTextBox @bind-Value="classroom" Class="w-100 bg-transparent text-light border-secondary" placeholder="Напр. Ауд. 301" />
-                            </div>
-                            <div class="col-md-2">
-                                <RadzenButton Text="Добавить" ButtonStyle="ButtonStyle.Primary" Click=@AddScheduleItem Class="w-100" style="background: #4da9ff;" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- User Management Section -->
-                    <div class="dashboard-card mt-4">
-                        <h2 class="dashboard-card-title" style="color: #00e676;">Управление пользователями</h2>
-                        
-                        <div class="row g-3">
-                            <div class="col-md-3">
-                                <label class="form-label text-light">Email</label>
-                                <RadzenTextBox @bind-Value="newUserEmail" Class="w-100" />
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label text-light">Пароль</label>
-                                <RadzenTextBox @bind-Value="newUserPassword" Class="w-100" />
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label text-light">ФИО</label>
-                                <RadzenTextBox @bind-Value="newUserFullName" Class="w-100" />
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label text-light">Роль</label>
-                                <RadzenDropDown @bind-Value="newUserRole" Data="@userRoles" Class="w-100" />
-                            </div>
-                            @if (newUserRole == "Студент")
-                            {
-                                <div class="col-md-2">
-                                    <label class="form-label text-light">Группа</label>
-                                    <RadzenDropDown @bind-Value="newUserGroupId" Data="@groups" TextProperty="Name" ValueProperty="Id" Class="w-100" />
+                            <!-- Tab: Subjects & Bindings -->
+                            <RadzenTabsItem Text="Предметы">
+                                <div class="row g-3 mt-3">
+                                    <div class="col-md-6">
+                                        <div class="dashboard-card">
+                                            <h2 class="dashboard-card-title" style="color: #ffb74d;">Добавить предмет</h2>
+                                            <div class="d-flex gap-2">
+                                                <RadzenTextBox @bind-Value="newSubjectName" Class="flex-grow-1" Placeholder="Название предмета" />
+                                                <RadzenButton Text="Добавить" ButtonStyle="ButtonStyle.Warning" Click=@CreateSubject />
+                                            </div>
+                                            <div class="mt-4">
+                                                <RadzenDataGrid @ref="subjectsGrid" Data="@subjects" TItem="Subject" AllowPaging="true" PageSize="5" 
+                                                                AllowSorting="true" AllowFiltering="true" FilterMode="FilterMode.Simple"
+                                                                class="bg-transparent text-light" RowUpdate="@OnUpdateRowSubject">
+                                                    <Columns>
+                                                        <RadzenDataGridColumn TItem="Subject" Property="Name" Title="Название">
+                                                            <EditTemplate Context="subject">
+                                                                <RadzenTextBox @bind-Value="subject.Name" Style="width:100%" />
+                                                            </EditTemplate>
+                                                        </RadzenDataGridColumn>
+                                                        <RadzenDataGridColumn TItem="Subject" Title="Действия" Width="120px">
+                                                            <Template Context="s">
+                                                                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(args => EditRowSubject(s))" />
+                                                                <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click=@(() => DeleteSubject(s.Id)) />
+                                                            </Template>
+                                                            <EditTemplate Context="s">
+                                                                <RadzenButton Icon="check" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" Click="@((args) => SaveRowSubject(s))" />
+                                                                <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@((args) => CancelEditSubject(s))" />
+                                                            </EditTemplate>
+                                                        </RadzenDataGridColumn>
+                                                    </Columns>
+                                                </RadzenDataGrid>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="dashboard-card">
+                                            <h2 class="dashboard-card-title" style="color: #a1a8b9;">Привязки (Преподаватель-Предмет-Группа)</h2>
+                                            <div class="row g-2">
+                                                <div class="col-md-4">
+                                                    <RadzenDropDown @bind-Value="selectedSubjectIdForBind" Data="@subjects" TextProperty="Name" ValueProperty="Id" Class="w-100" Placeholder="Предмет" />
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <RadzenDropDown @bind-Value="selectedTeacherIdForBind" Data="@teachers" TextProperty="FullName" ValueProperty="Id" Class="w-100" Placeholder="Преподаватель" />
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <RadzenDropDown @bind-Value="selectedGroupIdForBind" Data="@groups" TextProperty="Name" ValueProperty="Id" Class="w-100" Placeholder="Группа" />
+                                                </div>
+                                                <div class="col-md-12">
+                                                    <RadzenButton Text="Привязать" ButtonStyle="ButtonStyle.Secondary" Click=@BindTeacherToSubject Class="w-100" />
+                                                </div>
+                                            </div>
+                                            <div class="mt-4">
+                                                <RadzenDataGrid @ref="bindingsGrid" Data="@allBindings" TItem="TeacherSubjectGroup" AllowPaging="true" PageSize="5" 
+                                                                AllowSorting="true" AllowFiltering="true" FilterMode="FilterMode.Simple"
+                                                                class="bg-transparent text-light" RowUpdate="@OnUpdateRowBinding">
+                                                    <Columns>
+                                                        <RadzenDataGridColumn TItem="TeacherSubjectGroup" Property="Subject.Name" Title="Предмет">
+                                                            <EditTemplate Context="b">
+                                                                <RadzenDropDown @bind-Value="b.SubjectId" Data="@subjects" TextProperty="Name" ValueProperty="Id" Style="width:100%" />
+                                                            </EditTemplate>
+                                                        </RadzenDataGridColumn>
+                                                        <RadzenDataGridColumn TItem="TeacherSubjectGroup" Property="Teacher.FullName" Title="Преподаватель">
+                                                            <EditTemplate Context="b">
+                                                                <RadzenDropDown @bind-Value="b.TeacherId" Data="@teachers" TextProperty="FullName" ValueProperty="Id" Style="width:100%" />
+                                                            </EditTemplate>
+                                                        </RadzenDataGridColumn>
+                                                        <RadzenDataGridColumn TItem="TeacherSubjectGroup" Property="Group.Name" Title="Группа">
+                                                            <EditTemplate Context="b">
+                                                                <RadzenDropDown @bind-Value="b.GroupId" Data="@groups" TextProperty="Name" ValueProperty="Id" Style="width:100%" />
+                                                            </EditTemplate>
+                                                        </RadzenDataGridColumn>
+                                                        <RadzenDataGridColumn TItem="TeacherSubjectGroup" Title="Действия" Width="120px">
+                                                            <Template Context="b">
+                                                                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(args => EditRowBinding(b))" />
+                                                                <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click=@(() => DeleteBinding(b.Id)) />
+                                                            </Template>
+                                                            <EditTemplate Context="b">
+                                                                <RadzenButton Icon="check" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" Click="@((args) => SaveRowBinding(b))" />
+                                                                <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@((args) => CancelEditBinding(b))" />
+                                                            </EditTemplate>
+                                                        </RadzenDataGridColumn>
+                                                    </Columns>
+                                                </RadzenDataGrid>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                            }
-                            <div class="col-md-2 d-flex align-items-end">
-                                <RadzenButton Text="Создать" ButtonStyle="ButtonStyle.Success" Click=@CreateUser Class="w-100" style="background: #00e676; border: none; color: #0f121d; font-weight: 600;" />
-                            </div>
-                        </div>
-                    </div>
+                            </RadzenTabsItem>
 
-                    <!-- Subject Management Section -->
-                    <div class="dashboard-card mt-4">
-                        <h2 class="dashboard-card-title" style="color: #ffb74d;">Управление предметами</h2>
-                        
-                        <div class="row g-3">
-                            <div class="col-md-4">
-                                <label class="form-label text-light">Новый предмет</label>
-                                <RadzenTextBox @bind-Value="newSubjectName" Class="w-100" />
-                            </div>
-                            <div class="col-md-2 d-flex align-items-end">
-                                <RadzenButton Text="Добавить" ButtonStyle="ButtonStyle.Warning" Click=@CreateSubject Class="w-100" style="background: #ffb74d; color: #0f121d;" />
-                            </div>
-                        </div>
-                        
-                        <div class="row g-3 mt-3">
-                            <div class="col-md-3">
-                                <label class="form-label text-light">Предмет</label>
-                                <RadzenDropDown @bind-Value="selectedSubjectIdForBind" Data="@subjects" TextProperty="Name" ValueProperty="Id" Class="w-100" />
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label text-light">Преподаватель</label>
-                                <RadzenDropDown @bind-Value="selectedTeacherIdForBind" Data="@teachers" TextProperty="FullName" ValueProperty="Id" Class="w-100" />
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label text-light">Группа</label>
-                                <RadzenDropDown @bind-Value="selectedGroupIdForBind" Data="@groups" TextProperty="Name" ValueProperty="Id" Class="w-100" />
-                            </div>
-                            <div class="col-md-3 d-flex align-items-end">
-                                <RadzenButton Text="Привязать" ButtonStyle="ButtonStyle.Secondary" Click=@BindTeacherToSubject Class="w-100" style="background: #a1a8b9; color: #0f121d;" />
-                            </div>
-                        </div>
-                    </div>
+                            <!-- Tab: Schedule -->
+                            <RadzenTabsItem Text="Расписание">
+                                <div class="dashboard-card mt-3">
+                                    <h2 class="dashboard-card-title" style="color: #4da9ff;">Добавить в расписание</h2>
+                                    <div class="row g-3 align-items-end">
+                                        <div class="col-md-3">
+                                            <label class="form-label text-light">Группа</label>
+                                            <RadzenDropDown TValue="int" Data="@groups" TextProperty="Name" ValueProperty="Id" Class="w-100" @bind-Value="selectedGroupId" />
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label text-light">Предмет</label>
+                                            <RadzenDropDown TValue="int" Data="@subjects" TextProperty="Name" ValueProperty="Id" Class="w-100" @bind-Value="selectedSubjectId" />
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label text-light">Преподаватель</label>
+                                            <RadzenDropDown TValue="int" Data="@teachers" TextProperty="FullName" ValueProperty="Id" Class="w-100" @bind-Value="selectedTeacherId" />
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label text-light">День</label>
+                                            <RadzenDropDown TValue="DayOfWeek" Data="@daysOfWeek" Class="w-100" @bind-Value="selectedDay" />
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label text-light">Начало</label>
+                                            <RadzenDatePicker TValue="TimeOnly" @bind-Value="startTime" ShowTime="true" TimeOnly="true" DateFormat="HH:mm" Class="w-100" />
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label text-light">Конец</label>
+                                            <RadzenDatePicker TValue="TimeOnly" @bind-Value="endTime" ShowTime="true" TimeOnly="true" DateFormat="HH:mm" Class="w-100" />
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label text-light">Аудитория</label>
+                                            <RadzenTextBox @bind-Value="classroom" Class="w-100" />
+                                        </div>
+                                        <div class="col-md-4">
+                                            <RadzenButton Text="Добавить" ButtonStyle="ButtonStyle.Primary" Click=@AddScheduleItem Class="w-100" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="dashboard-card mt-4">
+                                    <h2 class="dashboard-card-title">Текущее расписание</h2>
+                                    <RadzenDataGrid @ref="scheduleGrid" Data="@allScheduleItems" TItem="ScheduleItem" AllowPaging="true" PageSize="10" 
+                                                    AllowSorting="true" AllowFiltering="true" FilterMode="FilterMode.Simple"
+                                                    class="bg-transparent text-light" RowUpdate="@OnUpdateRowSchedule">
+                                        <Columns>
+                                            <RadzenDataGridColumn TItem="ScheduleItem" Property="Group.Name" Title="Группа">
+                                                <EditTemplate Context="item">
+                                                    <RadzenDropDown @bind-Value="item.GroupId" Data="@groups" TextProperty="Name" ValueProperty="Id" Style="width:100%" />
+                                                </EditTemplate>
+                                            </RadzenDataGridColumn>
+                                            <RadzenDataGridColumn TItem="ScheduleItem" Property="Subject.Name" Title="Предмет">
+                                                <EditTemplate Context="item">
+                                                    <RadzenDropDown @bind-Value="item.SubjectId" Data="@subjects" TextProperty="Name" ValueProperty="Id" Style="width:100%" />
+                                                </EditTemplate>
+                                            </RadzenDataGridColumn>
+                                            <RadzenDataGridColumn TItem="ScheduleItem" Property="Teacher.FullName" Title="Препод">
+                                                <EditTemplate Context="item">
+                                                    <RadzenDropDown @bind-Value="item.TeacherId" Data="@teachers" TextProperty="FullName" ValueProperty="Id" Style="width:100%" />
+                                                </EditTemplate>
+                                            </RadzenDataGridColumn>
+                                            <RadzenDataGridColumn TItem="ScheduleItem" Property="DayOfWeek" Title="День">
+                                                <EditTemplate Context="item">
+                                                    <RadzenDropDown @bind-Value="item.DayOfWeek" Data="@daysOfWeek" Style="width:100%" />
+                                                </EditTemplate>
+                                            </RadzenDataGridColumn>
+                                            <RadzenDataGridColumn TItem="ScheduleItem" Title="Время">
+                                                <Template Context="item">
+                                                    @item.StartTime.ToString(@"hh\:mm") - @item.EndTime.ToString(@"hh\:mm")
+                                                </Template>
+                                                <EditTemplate Context="item">
+                                                    <div class="d-flex flex-column gap-1">
+                                                        <RadzenDatePicker TValue="DateTime?" Value="@(DateTime.Today.Add(item.StartTime))" 
+                                                                        ShowTime="true" TimeOnly="true" DateFormat="HH:mm" 
+                                                                        Change="@(args => item.StartTime = args.HasValue ? args.Value.TimeOfDay : item.StartTime)" 
+                                                                        Class="w-100" />
+                                                        <RadzenDatePicker TValue="DateTime?" Value="@(DateTime.Today.Add(item.EndTime))" 
+                                                                        ShowTime="true" TimeOnly="true" DateFormat="HH:mm" 
+                                                                        Change="@(args => item.EndTime = args.HasValue ? args.Value.TimeOfDay : item.EndTime)" 
+                                                                        Class="w-100" />
+                                                    </div>
+                                                </EditTemplate>
+                                            </RadzenDataGridColumn>
+                                            <RadzenDataGridColumn TItem="ScheduleItem" Property="Classroom" Title="Ауд.">
+                                                <EditTemplate Context="item">
+                                                    <RadzenTextBox @bind-Value="item.Classroom" Style="width:100%" />
+                                                </EditTemplate>
+                                            </RadzenDataGridColumn>
+                                            <RadzenDataGridColumn TItem="ScheduleItem" Title="Действия" Width="120px">
+                                                <Template Context="item">
+                                                    <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(args => EditRowSchedule(item))" />
+                                                    <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click=@(() => DeleteScheduleItem(item.Id)) />
+                                                </Template>
+                                                <EditTemplate Context="item">
+                                                    <RadzenButton Icon="check" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" Click="@((args) => SaveRowSchedule(item))" />
+                                                    <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@((args) => CancelEditSchedule(item))" />
+                                                </EditTemplate>
+                                            </RadzenDataGridColumn>
+                                        </Columns>
+                                    </RadzenDataGrid>
+                                </div>
+                            </RadzenTabsItem>
+                        </Tabs>
+                    </RadzenTabs>
                 }
+
                 else
                 {
                     <div class="dashboard-card">
@@ -242,6 +440,9 @@
     private List<AcademicPerformanceDashboard.Models.Group> groups = new();
     private List<Subject> subjects = new();
     private List<Teacher> teachers = new();
+    private List<UserManagementDto> allUsers = new();
+    private List<ScheduleItem> allScheduleItems = new();
+    private List<TeacherSubjectGroup> allBindings = new();
     
     // Create Subject form
     private string newSubjectName = "";
@@ -261,6 +462,16 @@
     {
         public string TeacherName { get; set; } = "";
         public string SubjectName { get; set; } = "";
+    }
+
+    private class UserManagementDto
+    {
+        public string Id { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string FullName { get; set; } = "";
+        public string Role { get; set; } = "";
+        public int? GroupId { get; set; }
+        public string? GroupName { get; set; }
     }
     
     // Create Group form
@@ -287,15 +498,205 @@
 
     private List<DayOfWeek> daysOfWeek = Enum.GetValues<DayOfWeek>().ToList();
 
+    RadzenDataGrid<AcademicPerformanceDashboard.Models.Group> groupsGrid = null!;
+    RadzenDataGrid<Subject> subjectsGrid = null!;
+    RadzenDataGrid<UserManagementDto> usersGrid = null!;
+    RadzenDataGrid<ScheduleItem> scheduleGrid = null!;
+    RadzenDataGrid<TeacherSubjectGroup> bindingsGrid = null!;
+
+    async Task EditRowGroup(AcademicPerformanceDashboard.Models.Group group)
+    {
+        await groupsGrid.EditRow(group);
+    }
+
+    async Task OnUpdateRowGroup(AcademicPerformanceDashboard.Models.Group group)
+    {
+        DbContext.Update(group);
+        await DbContext.SaveChangesAsync();
+        NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Success, Summary = "Успешно", Detail = "Группа обновлена" });
+        await LoadAllData();
+    }
+
+    async Task SaveRowGroup(AcademicPerformanceDashboard.Models.Group group)
+    {
+        await groupsGrid.UpdateRow(group);
+    }
+
+    void CancelEditGroup(AcademicPerformanceDashboard.Models.Group group)
+    {
+        groupsGrid.CancelEditRow(group);
+    }
+
+    async Task EditRowSubject(Subject subject)
+    {
+        await subjectsGrid.EditRow(subject);
+    }
+
+    async Task OnUpdateRowSubject(Subject subject)
+    {
+        DbContext.Update(subject);
+        await DbContext.SaveChangesAsync();
+        NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Success, Summary = "Успешно", Detail = "Предмет обновлен" });
+        await LoadAllData();
+    }
+
+    async Task SaveRowSubject(Subject subject)
+    {
+        await subjectsGrid.UpdateRow(subject);
+    }
+
+    void CancelEditSubject(Subject subject)
+    {
+        subjectsGrid.CancelEditRow(subject);
+    }
+
+    async Task EditRowSchedule(ScheduleItem item)
+    {
+        await scheduleGrid.EditRow(item);
+    }
+
+    async Task OnUpdateRowSchedule(ScheduleItem item)
+    {
+        DbContext.Update(item);
+        await DbContext.SaveChangesAsync();
+        NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Success, Summary = "Успешно", Detail = "Расписание обновлено" });
+        await LoadAllData();
+    }
+
+    async Task SaveRowSchedule(ScheduleItem item)
+    {
+        await scheduleGrid.UpdateRow(item);
+    }
+
+    void CancelEditSchedule(ScheduleItem item)
+    {
+        scheduleGrid.CancelEditRow(item);
+    }
+
+    async Task EditRowUser(UserManagementDto user)
+    {
+        await usersGrid.EditRow(user);
+    }
+
+    async Task OnUpdateRowUser(UserManagementDto userDto)
+    {
+        var user = await UserManager.FindByIdAsync(userDto.Id);
+        if (user != null)
+        {
+            user.FullName = userDto.FullName;
+            await UserManager.UpdateAsync(user);
+            
+            // Update linked profile
+            if (userDto.Role == "Студент")
+            {
+                var student = await DbContext.Students.FirstOrDefaultAsync(s => s.ApplicationUserId == user.Id);
+                if (student != null)
+                {
+                    student.FullName = userDto.FullName;
+                    student.GroupId = userDto.GroupId ?? student.GroupId;
+                }
+            }
+            else if (userDto.Role == "Преподаватель")
+            {
+                var teacher = await DbContext.Teachers.FirstOrDefaultAsync(t => t.ApplicationUserId == user.Id);
+                if (teacher != null)
+                {
+                    teacher.FullName = userDto.FullName;
+                }
+            }
+            
+            await DbContext.SaveChangesAsync();
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Success, Summary = "Успешно", Detail = "Пользователь обновлен" });
+            await LoadAllData();
+        }
+    }
+
+    async Task SaveRowUser(UserManagementDto user)
+    {
+        await usersGrid.UpdateRow(user);
+    }
+
+    void CancelEditUser(UserManagementDto user)
+    {
+        usersGrid.CancelEditRow(user);
+    }
+
+    async Task EditRowBinding(TeacherSubjectGroup binding)
+    {
+        await bindingsGrid.EditRow(binding);
+    }
+
+    async Task OnUpdateRowBinding(TeacherSubjectGroup binding)
+    {
+        DbContext.Update(binding);
+        await DbContext.SaveChangesAsync();
+        NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Success, Summary = "Успешно", Detail = "Привязка обновлена" });
+        await LoadAllData();
+    }
+
+    async Task SaveRowBinding(TeacherSubjectGroup binding)
+    {
+        await bindingsGrid.UpdateRow(binding);
+    }
+
+    void CancelEditBinding(TeacherSubjectGroup binding)
+    {
+        bindingsGrid.CancelEditRow(binding);
+    }
+
     protected override async Task OnInitializedAsync()
     {
+        await LoadAllData();
+        isLoading = false;
+    }
+
+    private async Task LoadAllData()
+    {
         groupRanking = await RankingService.GetGroupRankingAsync();
-        
         groups = await DbContext.Groups.OrderBy(g => g.Name).ToListAsync();
         subjects = await DbContext.Subjects.OrderBy(s => s.Name).ToListAsync();
         teachers = await DbContext.Teachers.OrderBy(t => t.FullName).ToListAsync();
         
-        isLoading = false;
+        allScheduleItems = await DbContext.ScheduleItems
+            .Include(s => s.Group)
+            .Include(s => s.Subject)
+            .Include(s => s.Teacher)
+            .ToListAsync();
+            
+        allBindings = await DbContext.TeacherSubjectGroups
+            .Include(t => t.Group)
+            .Include(t => t.Subject)
+            .Include(t => t.Teacher)
+            .ToListAsync();
+
+        var users = await UserManager.Users.ToListAsync();
+        allUsers = new List<UserManagementDto>();
+        foreach (var u in users)
+        {
+            if (u.Email == "admin@example.com") continue;
+            
+            var roles = await UserManager.GetRolesAsync(u);
+            var role = roles.FirstOrDefault() ?? "Студент";
+            
+            var dto = new UserManagementDto
+            {
+                Id = u.Id,
+                Email = u.Email ?? "",
+                FullName = u.FullName,
+                Role = role
+            };
+
+            if (role == "Студент")
+            {
+                var student = await DbContext.Students.Include(s => s.Group).FirstOrDefaultAsync(s => s.ApplicationUserId == u.Id);
+                if (student != null)
+                {
+                    dto.GroupId = student.GroupId;
+                    dto.GroupName = student.Group?.Name;
+                }
+            }
+            allUsers.Add(dto);
+        }
     }
 
     private async Task CreateGroup()
@@ -320,8 +721,7 @@
         newGroupName = "";
         newGroupCourse = 1;
         
-        // Reload groups
-        groups = await DbContext.Groups.OrderBy(g => g.Name).ToListAsync();
+        await LoadAllData();
     }
 
     private async Task AddScheduleItem()
@@ -371,8 +771,8 @@
         await DbContext.SaveChangesAsync();
 
         NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Success, Summary = "Успешно", Detail = "Элемент расписания добавлен" });
-        
         classroom = "";
+        await LoadAllData();
     }
 
     private async Task CreateUser()
@@ -414,18 +814,17 @@
                 DbContext.Teachers.Add(teacher);
             }
 
+            await UserManager.AddToRoleAsync(user, newUserRole);
             await DbContext.SaveChangesAsync();
 
             NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Success, Summary = "Успешно", Detail = $"Пользователь {newUserEmail} создан" });
 
-            // Clear form
             newUserEmail = "";
             newUserPassword = "";
             newUserFullName = "";
             newUserGroupId = 0;
             
-            // Reload teachers if needed (for schedule dropdown)
-            teachers = await DbContext.Teachers.OrderBy(t => t.FullName).ToListAsync();
+            await LoadAllData();
         }
         else
         {
@@ -448,9 +847,7 @@
 
         NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Success, Summary = "Успешно", Detail = $"Предмет {newSubjectName} создан" });
         newSubjectName = "";
-        
-        // Reload subjects
-        subjects = await DbContext.Subjects.OrderBy(s => s.Name).ToListAsync();
+        await LoadAllData();
     }
 
     private async Task BindTeacherToSubject()
@@ -480,6 +877,7 @@
         await DbContext.SaveChangesAsync();
 
         NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Success, Summary = "Успешно", Detail = "Преподаватель привязан к предмету и группе" });
+        await LoadAllData();
     }
 
     private async Task OnGroupSelect(GroupRankingDto group)
@@ -498,5 +896,79 @@
             .Select(tsg => new TeacherSubjectDto { TeacherName = tsg.Teacher.FullName, SubjectName = tsg.Subject.Name })
             .Distinct()
             .ToListAsync();
+    }
+
+    private async Task DeleteGroup(int id)
+    {
+        var group = await DbContext.Groups.FindAsync(id);
+        if (group != null)
+        {
+            DbContext.Groups.Remove(group);
+            await DbContext.SaveChangesAsync();
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Success, Summary = "Успешно", Detail = "Группа удалена" });
+            await LoadAllData();
+        }
+    }
+
+    private async Task DeleteUser(string id)
+    {
+        var user = await UserManager.FindByIdAsync(id);
+        if (user != null)
+        {
+            // Delete related Student/Teacher records first (though ApplicationUser deletion might handle it if configured, but let's be explicit)
+            var student = await DbContext.Students.FirstOrDefaultAsync(s => s.ApplicationUserId == id);
+            if (student != null) DbContext.Students.Remove(student);
+            
+            var teacher = await DbContext.Teachers.FirstOrDefaultAsync(t => t.ApplicationUserId == id);
+            if (teacher != null) DbContext.Teachers.Remove(teacher);
+            
+            var result = await UserManager.DeleteAsync(user);
+            if (result.Succeeded)
+            {
+                await DbContext.SaveChangesAsync();
+                NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Success, Summary = "Успешно", Detail = "Пользователь удален" });
+                await LoadAllData();
+            }
+            else
+            {
+                NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Error, Summary = "Ошибка", Detail = "Не удалось удалить пользователя" });
+            }
+        }
+    }
+
+    private async Task DeleteSubject(int id)
+    {
+        var subject = await DbContext.Subjects.FindAsync(id);
+        if (subject != null)
+        {
+            DbContext.Subjects.Remove(subject);
+            await DbContext.SaveChangesAsync();
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Success, Summary = "Успешно", Detail = "Предмет удален" });
+            await LoadAllData();
+        }
+    }
+
+    private async Task DeleteScheduleItem(int id)
+    {
+        var item = await DbContext.ScheduleItems.FindAsync(id);
+        if (item != null)
+        {
+            DbContext.ScheduleItems.Remove(item);
+            await DbContext.SaveChangesAsync();
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Success, Summary = "Успешно", Detail = "Запись расписания удалена" });
+            await LoadAllData();
+        }
+    }
+
+    private async Task DeleteBinding(int id)
+    {
+        var binding = await DbContext.TeacherSubjectGroups.FindAsync(id);
+        if (binding != null)
+        {
+            DbContext.TeacherSubjectGroups.Remove(binding);
+            await DbContext.SaveChangesAsync();
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Success, Summary = "Успешно", Detail = "Привязка удалена" });
+            await LoadAllData();
+        }
     }
 }

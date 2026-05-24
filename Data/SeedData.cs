@@ -17,8 +17,18 @@ public static class SeedData
         }
 
         var userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+
+        // Create roles
+        string[] roleNames = { "Администратор", "Преподаватель", "Студент" };
+        foreach (var roleName in roleNames)
+        {
+            if (!await roleManager.RoleExistsAsync(roleName))
+            {
+                await roleManager.CreateAsync(new IdentityRole(roleName));
+            }
+        }
         
-        // Roles are not strictly needed if we just check Student/Teacher tables, but we can just use the tables directly.
         // Let's create users
         var adminUser = new ApplicationUser { UserName = "admin@example.com", Email = "admin@example.com", EmailConfirmed = true, FullName = "System Administrator" };
         var teacherUser = new ApplicationUser { UserName = "teacher@example.com", Email = "teacher@example.com", EmailConfirmed = true, FullName = "Иван Иванов" };
@@ -28,12 +38,17 @@ public static class SeedData
         await userManager.CreateAsync(teacherUser, "Teacher123!");
         await userManager.CreateAsync(studentUser, "Student123!");
 
+        await userManager.AddToRoleAsync(adminUser, "Администратор");
+        await userManager.AddToRoleAsync(teacherUser, "Преподаватель");
+        await userManager.AddToRoleAsync(studentUser, "Студент");
+
         // Add additional teachers and students
         var otherTeachers = new List<ApplicationUser>();
         for (int i = 1; i <= 4; i++)
         {
             var t = new ApplicationUser { UserName = $"teacher{i}@example.com", Email = $"teacher{i}@example.com", EmailConfirmed = true, FullName = $"Преподаватель {i}" };
             await userManager.CreateAsync(t, "Teacher123!");
+            await userManager.AddToRoleAsync(t, "Преподаватель");
             otherTeachers.Add(t);
         }
 
@@ -81,6 +96,7 @@ public static class SeedData
         {
             var sUser = new ApplicationUser { UserName = $"student{i}@example.com", Email = $"student{i}@example.com", EmailConfirmed = true, FullName = $"Студент {i}" };
             await userManager.CreateAsync(sUser, "Student123!");
+            await userManager.AddToRoleAsync(sUser, "Студент");
             var s = new Student { ApplicationUserId = sUser.Id, FullName = sUser.FullName, GroupId = groups[i % 3].Id };
             context.Students.Add(s);
             studentList.Add(s);

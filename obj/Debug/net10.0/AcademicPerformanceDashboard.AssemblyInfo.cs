@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("AcademicPerformanceDashboard")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c76828ef7e002bcde6096d50a159cdf617587f4d")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a1f57893d16426f5c3080e58dc4c483a8bfc1745")]
 [assembly: System.Reflection.AssemblyProductAttribute("AcademicPerformanceDashboard")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AcademicPerformanceDashboard")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
